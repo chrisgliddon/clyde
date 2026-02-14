@@ -1,0 +1,10 @@
+{
+  "asset_label": "LoreDesc",
+  "inc_path": "include/text/lore_desc_en.inc",
+  "char_tables": [
+    "big_symbols_en",
+    "null_terminated_en",
+    "text_en"
+  ],
+  "text": []
+}
