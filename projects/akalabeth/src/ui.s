@@ -3,11 +3,11 @@
 
 .include "macros.s"
 
-.export UiInit, UiDrawStats
+.export UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .export Bg3Tilemap
 .exportzp StatsDirty
 
-.importzp PlayerHP, PlayerFood, PlayerGold, PlayerWeapon
+.importzp PlayerHP, PlayerFood, PlayerGold, PlayerWeapon, PlayerQuest
 .import GfxUploadFont
 
 ; ============================================================================
@@ -289,6 +289,194 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 .endproc
 
 ; ============================================================================
+; UiClearBg3 — clear entire BG3 tilemap buffer
+; ============================================================================
+.proc UiClearBg3
+    SET_AXY16
+    ldx #$0000
+    lda #$0000
+@clear:
+    sta Bg3Tilemap,x
+    inx
+    inx
+    cpx #2048
+    bne @clear
+    SET_A8
+    rts
+.endproc
+
+; ============================================================================
+; UiShowTitle — display title screen text on BG3
+; ============================================================================
+.proc UiShowTitle
+    SET_A8
+    jsr UiClearBg3
+
+    ; Configure PPU for text-only display
+    lda #$01                ; Mode 1
+    sta BGMODE
+    lda #$30                ; BG3 tilemap at $3000
+    sta BG3SC
+    lda #$02                ; BG3 chars at $1000
+    sta BG34NBA
+    lda #$04                ; Enable BG3 only
+    sta TM
+
+    ; Title text
+    lda #<str_title1
+    sta UI_TempPtr
+    lda #>str_title1
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$08
+    jsr PrintString
+
+    lda #<str_title2
+    sta UI_TempPtr
+    lda #>str_title2
+    sta UI_TempPtr+1
+    ldx #$05
+    ldy #$0A
+    jsr PrintString
+
+    lda #<str_press_start
+    sta UI_TempPtr
+    lda #>str_press_start
+    sta UI_TempPtr+1
+    ldx #$09
+    ldy #$10
+    jsr PrintString
+
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
+; UiShowShop — display shop menu on BG3
+; ============================================================================
+.proc UiShowShop
+    SET_A8
+
+    ; Only redraw if entering (check a flag or just always draw — simple approach)
+    jsr UiClearBg3
+
+    lda #<str_shop_title
+    sta UI_TempPtr
+    lda #>str_shop_title
+    sta UI_TempPtr+1
+    ldx #$06
+    ldy #$04
+    jsr PrintString
+
+    lda #<str_shop_food
+    sta UI_TempPtr
+    lda #>str_shop_food
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$08
+    jsr PrintString
+
+    lda #<str_shop_a_buy
+    sta UI_TempPtr
+    lda #>str_shop_a_buy
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0C
+    jsr PrintString
+
+    lda #<str_shop_b_leave
+    sta UI_TempPtr
+    lda #>str_shop_b_leave
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0E
+    jsr PrintString
+
+    ; Show gold
+    lda #<str_gp
+    sta UI_TempPtr
+    lda #>str_gp
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$12
+    jsr PrintString
+
+    SET_A16
+    lda PlayerGold
+    sta UI_DivQuot
+    SET_A8
+    ldx #$07
+    ldy #$12
+    jsr PrintNum16
+
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
+; UiShowCastle — display castle/quest screen on BG3
+; ============================================================================
+.proc UiShowCastle
+    SET_A8
+    jsr UiClearBg3
+
+    lda #<str_castle_title
+    sta UI_TempPtr
+    lda #>str_castle_title
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$04
+    jsr PrintString
+
+    ; Check if quest completed
+    lda PlayerQuest
+    bmi @show_complete
+
+    ; Show current quest: "SEEK THE <monster>"
+    lda #<str_seek
+    sta UI_TempPtr
+    lda #>str_seek
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$08
+    jsr PrintString
+
+    lda #<str_castle_b
+    sta UI_TempPtr
+    lda #>str_castle_b
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0E
+    jsr PrintString
+
+    jmp @done_castle
+
+@show_complete:
+    lda #<str_quest_done
+    sta UI_TempPtr
+    lda #>str_quest_done
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$08
+    jsr PrintString
+
+    lda #<str_castle_a
+    sta UI_TempPtr
+    lda #>str_castle_a
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0C
+    jsr PrintString
+
+@done_castle:
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
 ; RODATA — static strings
 ; ============================================================================
 
@@ -297,4 +485,31 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 str_hp:     .byte "HP:", $00
 str_fd:     .byte "FD:", $00
 str_gp:     .byte "GP:", $00
-str_blank:  .byte "                                ", $00  ; 32 spaces
+str_blank:  .byte "                                ", $00
+
+str_title1:
+    .byte "AKALABETH", $00
+str_title2:
+    .byte "WORLD OF DOOM", $00
+str_press_start:
+    .byte "PRESS START", $00
+
+str_shop_title:
+    .byte "--- SHOPPE ---", $00
+str_shop_food:
+    .byte "FOOD: 10 PER GOLD", $00
+str_shop_a_buy:
+    .byte "A: BUY FOOD", $00
+str_shop_b_leave:
+    .byte "B: LEAVE", $00
+
+str_castle_title:
+    .byte "--- LORD BRITISH ---", $00
+str_seek:
+    .byte "SEEK AND DESTROY!", $00
+str_quest_done:
+    .byte "QUEST COMPLETE!", $00
+str_castle_a:
+    .byte "A: NEXT QUEST", $00
+str_castle_b:
+    .byte "B: LEAVE", $00
