@@ -7,7 +7,16 @@
 .export UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .export UiShowGameOver, UiShowVictory
 .export UiClearBg3, Bg3Tilemap
-.exportzp StatsDirty
+.export UiTickMessage, UiSetMessage
+.export UiMsgInit, UiMsgAppendStr, UiMsgAppendNum, UiMsgAppendMonName, UiMsgShow
+.export str_msg_hit, str_msg_miss, str_msg_killed, str_msg_quest
+.export str_msg_mon_hit, str_msg_mon_miss, str_msg_dmg
+.export str_msg_thief, str_msg_rapier, str_msg_axe, str_msg_shield, str_msg_bow
+.export str_msg_gremlin, str_msg_chest, str_msg_gold, str_msg_trap
+.export str_msg_up, str_msg_down
+.export str_msg_backfire, str_msg_toad, str_msg_magkill, str_msg_magstair
+.export str_msg_crumble, str_msg_died
+.exportzp StatsDirty, UI_TempPtr
 
 .importzp PlayerHP, PlayerFood, PlayerGold, PlayerQuest
 .importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
@@ -42,6 +51,8 @@ UI_TempA:       .res 1
 UI_TempB:       .res 1
 UI_TempPtr:     .res 2      ; Pointer to string for PrintString
 UI_DivQuot:     .res 2      ; 16-bit value for PrintNum16
+MsgTimer:       .res 1      ; Countdown frames (120 = 2 sec display)
+MsgBufPos:      .res 1      ; Current write position in MsgBuf
 
 ; ============================================================================
 ; BSS
@@ -50,6 +61,7 @@ UI_DivQuot:     .res 2      ; 16-bit value for PrintNum16
 .segment "BSS"
 Bg3Tilemap:     .res 2048   ; 32x32 BG3 tilemap buffer
 NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
+MsgBuf:         .res 32     ; Composed message text buffer
 
 ; ============================================================================
 ; Code
@@ -1009,6 +1021,217 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 .endproc
 
 ; ============================================================================
+; Message System — compose and display messages on BG3 row 26
+; ============================================================================
+
+; UiMsgInit — clear MsgBuf and reset write position
+.proc UiMsgInit
+    SET_AXY8
+    ldx #$00
+    lda #$00
+@clear:
+    sta MsgBuf,x
+    inx
+    cpx #32
+    bne @clear
+    stz MsgBufPos
+    rts
+.endproc
+
+; UiMsgAppendStr — append null-terminated string from UI_TempPtr to MsgBuf
+.proc UiMsgAppendStr
+    SET_AXY8
+    ldy #$00
+    ldx MsgBufPos
+@loop:
+    lda (UI_TempPtr),y
+    beq @done
+    cpx #30                 ; Safety: leave room for null
+    bcs @done
+    sta MsgBuf,x
+    inx
+    iny
+    bra @loop
+@done:
+    stx MsgBufPos
+    rts
+.endproc
+
+; UiMsgAppendNum — append 8-bit decimal number from A to MsgBuf
+; Skips leading zeros. Input: A = value (8-bit)
+.proc UiMsgAppendNum
+    SET_AXY8
+    sta UI_TempA
+    stz UI_TempB              ; Leading-zero flag
+
+    ; Handle 0
+    cmp #$00
+    bne @nonzero
+    ldx MsgBufPos
+    lda #'0'
+    sta MsgBuf,x
+    inc MsgBufPos
+    rts
+
+@nonzero:
+    ; Hundreds: val / 100
+    sta WRDIVL
+    stz WRDIVH
+    lda #100
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL              ; Quotient = hundreds digit
+    beq @tens
+    clc
+    adc #'0'
+    ldx MsgBufPos
+    sta MsgBuf,x
+    inc MsgBufPos
+    lda #$01
+    sta UI_TempB             ; Had hundreds digit
+@tens:
+    lda RDMPYL              ; Remainder from hundreds division
+    sta WRDIVL
+    stz WRDIVH
+    lda #10
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL              ; Quotient = tens digit
+    bne @write_tens
+    lda UI_TempB
+    beq @ones               ; Skip leading zero if no hundreds
+    lda #$00                ; Tens is 0 but we had hundreds
+@write_tens:
+    clc
+    adc #'0'
+    ldx MsgBufPos
+    sta MsgBuf,x
+    inc MsgBufPos
+@ones:
+    lda RDMPYL              ; Remainder = ones digit
+    clc
+    adc #'0'
+    ldx MsgBufPos
+    sta MsgBuf,x
+    inc MsgBufPos
+    rts
+.endproc
+
+; UiMsgAppendMonName — append monster name from index in X (0-9)
+; Uses MonsterNamePtrs lookup table
+.proc UiMsgAppendMonName
+    SET_AXY8
+    txa
+    asl                     ; * 2 for pointer table
+    tax
+    lda MonsterNamePtrs,x
+    sta UI_TempPtr
+    lda MonsterNamePtrs+1,x
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    rts
+.endproc
+
+; UiMsgShow — null-terminate MsgBuf, clear row 26, print, set timer
+.proc UiMsgShow
+    SET_AXY8
+    ldx MsgBufPos
+    stz MsgBuf,x            ; Null-terminate
+
+    ; Clear row 26 in Bg3Tilemap (32 tiles = 64 bytes)
+    SET_AXY16
+    ldx #MSG_ROW * 32 * 2   ; Byte offset for row 26
+    lda #$0000
+    ldy #$0000
+@clr:
+    sta Bg3Tilemap,x
+    inx
+    inx
+    iny
+    cpy #32
+    bne @clr
+
+    ; Print MsgBuf at row 26, col 1
+    SET_AXY8
+    lda #<MsgBuf
+    sta UI_TempPtr
+    lda #>MsgBuf
+    sta UI_TempPtr+1
+    ldx #$01
+    ldy #MSG_ROW
+    jsr PrintString
+
+    lda #120                ; 2 seconds at 60fps
+    sta MsgTimer
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; UiSetMessage — convenience: init + append string from UI_TempPtr + show
+; Input: UI_TempPtr = string address
+.proc UiSetMessage
+    SET_AXY8
+    ; Save UI_TempPtr (UiMsgInit doesn't clobber it, but be safe)
+    lda UI_TempPtr
+    pha
+    lda UI_TempPtr+1
+    pha
+    jsr UiMsgInit
+    pla
+    sta UI_TempPtr+1
+    pla
+    sta UI_TempPtr
+    jsr UiMsgAppendStr
+    jsr UiMsgShow
+    rts
+.endproc
+
+; UiTickMessage — called each frame; decrements timer, clears msg when expired
+.proc UiTickMessage
+    SET_AXY8
+    lda MsgTimer
+    beq @done
+    dec a
+    sta MsgTimer
+    bne @done
+    ; Timer hit zero — clear row 26
+    SET_AXY16
+    ldx #MSG_ROW * 32 * 2
+    lda #$0000
+    ldy #$0000
+@clr:
+    sta Bg3Tilemap,x
+    inx
+    inx
+    iny
+    cpy #32
+    bne @clr
+    SET_AXY8
+    lda #$01
+    sta StatsDirty
+@done:
+    rts
+.endproc
+
+; RDDIVL/RDMPYL already defined in macros.s constants
+; WRDIVL/WRDIVH/WRDIVB already defined in macros.s constants
+
+; ============================================================================
 ; RODATA — static strings
 ; ============================================================================
 
@@ -1133,3 +1356,42 @@ str_cg_lr_change:
     .byte "L/R: CHANGE", $00
 str_cg_a_confirm:
     .byte "A: CONFIRM", $00
+
+; Monster name pointer table (indexed by type 0-9)
+MonsterNamePtrs:
+    .word str_mn_skeleton
+    .word str_mn_thief
+    .word str_mn_rat
+    .word str_mn_orc
+    .word str_mn_viper
+    .word str_mn_carrion
+    .word str_mn_gremlin
+    .word str_mn_mimic
+    .word str_mn_daemon
+    .word str_mn_balrog
+
+; Message strings
+str_msg_hit:      .byte "HIT FOR ", $00
+str_msg_miss:     .byte "YOU MISS!", $00
+str_msg_killed:   .byte " KILLED!", $00
+str_msg_quest:    .byte "QUEST COMPLETE!", $00
+str_msg_mon_hit:  .byte " HITS! ", $00
+str_msg_mon_miss: .byte " MISSES!", $00
+str_msg_dmg:      .byte " DMG", $00
+str_msg_thief:    .byte "THIEF STOLE ", $00
+str_msg_rapier:   .byte "RAPIER!", $00
+str_msg_axe:      .byte "AXE!", $00
+str_msg_shield:   .byte "SHIELD!", $00
+str_msg_bow:      .byte "BOW!", $00
+str_msg_gremlin:  .byte "GREMLIN ATE YOUR FOOD!", $00
+str_msg_chest:    .byte "FOUND ", $00
+str_msg_gold:     .byte " GOLD!", $00
+str_msg_trap:     .byte "TRAP! FLOOR ", $00
+str_msg_up:       .byte "CLIMBED UP", $00
+str_msg_down:     .byte "DESCENDED", $00
+str_msg_backfire: .byte "AMULET BACKFIRES!", $00
+str_msg_toad:     .byte "TURNED INTO A TOAD!", $00
+str_msg_magkill:  .byte "MAGIC DESTROYS ", $00
+str_msg_magstair: .byte "MAGIC STAIRS APPEAR!", $00
+str_msg_crumble:  .byte "AMULET CRUMBLES!", $00
+str_msg_died:     .byte "YOU HAVE PERISHED!", $00

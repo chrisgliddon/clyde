@@ -16,7 +16,7 @@
 .import UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .import UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .import UiShowGameOver, UiShowVictory
-.import UiClearBg3
+.import UiClearBg3, UiTickMessage
 .import GfxUploadOverworld, GfxUploadFont
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
@@ -360,6 +360,7 @@ STATE_CHARGEN_CLASS = $09
     cmp #STATE_GAMEOVER
     beq :+
     jsr UiDrawStats
+    jsr UiTickMessage
 :   jmp @loop
 @exit_dungeon_gfx:
     jsr UiClearBg3

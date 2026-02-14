@@ -12,8 +12,18 @@
 .importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS, PlayerQuest
 .importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 .importzp PlayerClass, DiffLevel, StatsDirty
+.importzp UI_TempPtr
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_A, JOY_B, JOY_SELECT
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
+.import UiSetMessage, UiMsgInit, UiMsgAppendStr, UiMsgAppendNum
+.import UiMsgAppendMonName, UiMsgShow
+.import str_msg_hit, str_msg_miss, str_msg_killed, str_msg_quest
+.import str_msg_mon_hit, str_msg_mon_miss, str_msg_dmg
+.import str_msg_thief, str_msg_rapier, str_msg_axe, str_msg_shield, str_msg_bow
+.import str_msg_gremlin, str_msg_chest, str_msg_gold, str_msg_trap
+.import str_msg_up, str_msg_down
+.import str_msg_backfire, str_msg_toad, str_msg_magkill, str_msg_magstair
+.import str_msg_crumble, str_msg_died
 
 ; ============================================================================
 ; Constants
@@ -516,14 +526,18 @@ MonType:        .res MAX_MONSTERS
     lda DungeonGrid,x
 
     cmp #DTILE_STAIRS_UP
-    beq @go_up
-    cmp #DTILE_STAIRS_DN
-    beq @go_down
-    cmp #DTILE_CHEST
-    beq @open_chest
-    cmp #DTILE_TRAP
-    beq @hit_trap
-    ; Normal floor — run monster AI then render
+    bne :+
+    jmp @go_up
+:   cmp #DTILE_STAIRS_DN
+    bne :+
+    jmp @go_down
+:   cmp #DTILE_CHEST
+    bne :+
+    jmp @open_chest
+:   cmp #DTILE_TRAP
+    bne :+
+    jmp @hit_trap
+:   ; Normal floor — run monster AI then render
     jsr MonsterAI
     jmp @render_exit
 
@@ -536,6 +550,18 @@ MonType:        .res MAX_MONSTERS
     bne :+
     jmp @render_exit        ; Can't go deeper
 :   inc DungFloor
+    ; Message: "TRAP! FLOOR N"
+    jsr UiMsgInit
+    lda #<str_msg_trap
+    sta UI_TempPtr
+    lda #>str_msg_trap
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    lda DungFloor
+    clc
+    adc #$01                ; 1-based floor display
+    jsr UiMsgAppendNum
+    jsr UiMsgShow
     jsr GenerateFloor
     jsr PlaceMonsters
     jmp @place_at_up_stairs
@@ -557,12 +583,35 @@ MonType:        .res MAX_MONSTERS
     adc DG_Offset
     sta PlayerGold
     SET_A8
+    ; Message: "FOUND N GOLD!"
+    jsr UiMsgInit
+    lda #<str_msg_chest
+    sta UI_TempPtr
+    lda #>str_msg_chest
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    lda DG_TempA
+    jsr UiMsgAppendNum
+    lda #<str_msg_gold
+    sta UI_TempPtr
+    lda #>str_msg_gold
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    jsr UiMsgShow
+    lda #$01
+    sta StatsDirty
     jmp @render_exit
 
 @go_up:
     lda DungFloor
     beq @exit_dungeon       ; Floor 0 stairs up = exit
     dec DungFloor
+    ; Message: "CLIMBED UP"
+    lda #<str_msg_up
+    sta UI_TempPtr
+    lda #>str_msg_up
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     jsr GenerateFloor
     jsr PlaceMonsters
     ; Place player at down-stairs of new (upper) floor
@@ -574,6 +623,12 @@ MonType:        .res MAX_MONSTERS
     bne :+
     jmp @render_exit        ; Can't go deeper
 :   inc DungFloor
+    ; Message: "DESCENDED"
+    lda #<str_msg_down
+    sta UI_TempPtr
+    lda #>str_msg_down
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     jsr GenerateFloor
     jsr PlaceMonsters
     ; Place player at up-stairs of new (lower) floor
@@ -734,7 +789,17 @@ MonType:        .res MAX_MONSTERS
     sec
     sbc DG_TempC
     sta MonHP,x
+    ; Message: "HIT FOR N"
     SET_XY16
+    jsr UiMsgInit
+    lda #<str_msg_hit
+    sta UI_TempPtr
+    lda #>str_msg_hit
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    lda DG_TempC
+    jsr UiMsgAppendNum
+    jsr UiMsgShow
     jsr MonsterAI
     jmp @render_exit
 @kill_mon:
@@ -797,6 +862,22 @@ MonType:        .res MAX_MONSTERS
     ora #$80                ; Set completion flag
     sta PlayerQuest
 @kill_no_quest:
+    ; Message: "MONSTER KILLED!" (or "QUEST COMPLETE!" if quest)
+    SET_XY16
+    jsr UiMsgInit
+    SET_XY8
+    ldx DG_MonIdx
+    lda MonType,x
+    tax
+    SET_XY16
+    jsr UiMsgAppendMonName
+    lda #<str_msg_killed
+    sta UI_TempPtr
+    lda #>str_msg_killed
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    jsr UiMsgShow
+    SET_AXY8
     lda #$01
     sta StatsDirty
     SET_XY16
@@ -804,6 +885,12 @@ MonType:        .res MAX_MONSTERS
 
 @atk_miss_no_mon:
 @atk_miss:
+    ; Message: "YOU MISS!"
+    lda #<str_msg_miss
+    sta UI_TempPtr
+    lda #>str_msg_miss
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     ; Miss — monster AI still runs
     jsr MonsterAI
     jmp @render_exit
@@ -846,6 +933,11 @@ MonType:        .res MAX_MONSTERS
     lda #$0001                  ; At least 1 HP
 :   sta PlayerHP
     SET_A8
+    lda #<str_msg_backfire
+    sta UI_TempPtr
+    lda #>str_msg_backfire
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     jmp @amulet_consume
 
 @backfire_toad:
@@ -855,6 +947,11 @@ MonType:        .res MAX_MONSTERS
     sta PlayerDEX
     sta PlayerSTA
     sta PlayerWIS
+    lda #<str_msg_toad
+    sta UI_TempPtr
+    lda #>str_msg_toad
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     jmp @amulet_consume
 
 @amulet_normal:
@@ -885,6 +982,11 @@ MonType:        .res MAX_MONSTERS
     lda #DTILE_STAIRS_UP
     sta DungeonGrid,x
     SET_AXY8
+    lda #<str_msg_magstair
+    sta UI_TempPtr
+    lda #>str_msg_magstair
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     jmp @amulet_consume
 
 @amulet_ladder_dn:
@@ -897,6 +999,11 @@ MonType:        .res MAX_MONSTERS
     lda #DTILE_STAIRS_DN
     sta DungeonGrid,x
     SET_AXY8
+    lda #<str_msg_magstair
+    sta UI_TempPtr
+    lda #>str_msg_magstair
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     jmp @amulet_consume
 
 @amulet_magic_kill:
@@ -939,7 +1046,9 @@ MonType:        .res MAX_MONSTERS
     ; Did we find a monster?
     lda DG_MonIdx
     cmp #$FF
-    beq @amulet_consume         ; No monsters → wasted
+    bne :+
+    jmp @amulet_consume         ; No monsters → wasted
+:
 
     ; Apply 10 + floor damage
     lda #10
@@ -949,7 +1058,10 @@ MonType:        .res MAX_MONSTERS
     cmp MonHP,x
     bcc @mk_wound               ; Damage < HP → wound only
 
-    ; Kill monster
+    ; Kill monster — message: "MAGIC DESTROYS MONSTER!"
+    ; Save monster type before clearing
+    lda MonType,x
+    pha
     lda #$00
     sta MonAlive,x
     lda MonY,x
@@ -977,6 +1089,20 @@ MonType:        .res MAX_MONSTERS
     adc DG_Offset
     sta PlayerGold
     SET_A8
+    ; Message: "MAGIC DESTROYS MONSTER!"
+    SET_XY16
+    jsr UiMsgInit
+    lda #<str_msg_magkill
+    sta UI_TempPtr
+    lda #>str_msg_magkill
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    pla                         ; Restore monster type
+    tax
+    SET_XY16
+    jsr UiMsgAppendMonName
+    jsr UiMsgShow
+    SET_AXY8
     ; Quest check
     ldx DG_MonIdx
     lda MonType,x
@@ -1001,6 +1127,11 @@ MonType:        .res MAX_MONSTERS
     cmp #64
     bcs @amulet_done
     dec PlayerAmulet
+    lda #<str_msg_crumble
+    sta UI_TempPtr
+    lda #>str_msg_crumble
+    sta UI_TempPtr+1
+    jsr UiSetMessage
 @amulet_done:
     lda #$01
     sta StatsDirty
@@ -1418,11 +1549,14 @@ MonType:        .res MAX_MONSTERS
     ldx DG_MonIdx
     lda MonType,x
     cmp #$01
-    bne @not_thief
+    beq :+
+    jmp @not_thief
+:
     jsr PrngNext
     and #$01
-    beq @mon_normal_attack
-    ; Steal a random item (try to find one the player has)
+    bne :+
+    jmp @mon_normal_attack
+:   ; Steal a random item (try to find one the player has)
     jsr PrngNext
     and #$03                ; 0-3 → rapier, axe, shield, bow
     beq @steal_rapier
@@ -1432,23 +1566,60 @@ MonType:        .res MAX_MONSTERS
     beq @steal_shield
     ; 3 = bow
     lda PlayerBow
-    beq @mon_normal_attack
+    bne :+
+    jmp @mon_normal_attack
+:
     dec PlayerBow
-    jmp @ai_next
+    lda #<str_msg_bow
+    sta DG_TempA
+    lda #>str_msg_bow
+    sta DG_TempC
+    jmp @steal_msg
 @steal_rapier:
     lda PlayerRapier
-    beq @mon_normal_attack
-    dec PlayerRapier
-    jmp @ai_next
+    bne :+
+    jmp @mon_normal_attack
+:   dec PlayerRapier
+    lda #<str_msg_rapier
+    sta DG_TempA
+    lda #>str_msg_rapier
+    sta DG_TempC
+    jmp @steal_msg
 @steal_axe:
     lda PlayerAxe
-    beq @mon_normal_attack
-    dec PlayerAxe
-    jmp @ai_next
+    bne :+
+    jmp @mon_normal_attack
+:   dec PlayerAxe
+    lda #<str_msg_axe
+    sta DG_TempA
+    lda #>str_msg_axe
+    sta DG_TempC
+    jmp @steal_msg
 @steal_shield:
     lda PlayerShield
-    beq @mon_normal_attack
-    dec PlayerShield
+    bne :+
+    jmp @mon_normal_attack
+:   dec PlayerShield
+    lda #<str_msg_shield
+    sta DG_TempA
+    lda #>str_msg_shield
+    sta DG_TempC
+@steal_msg:
+    ; Compose "THIEF STOLE ITEM!"
+    jsr UiMsgInit
+    lda #<str_msg_thief
+    sta UI_TempPtr
+    lda #>str_msg_thief
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    lda DG_TempA
+    sta UI_TempPtr
+    lda DG_TempC
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    jsr UiMsgShow
+    lda #$01
+    sta StatsDirty
     jmp @ai_next
 
 @not_thief:
@@ -1463,6 +1634,14 @@ MonType:        .res MAX_MONSTERS
     lsr                     ; / 2
     sta PlayerFood
     SET_A8
+    ; Message: "GREMLIN ATE YOUR FOOD!"
+    lda #<str_msg_gremlin
+    sta UI_TempPtr
+    lda #>str_msg_gremlin
+    sta UI_TempPtr+1
+    jsr UiSetMessage
+    lda #$01
+    sta StatsDirty
     jmp @ai_next
 
 @mon_normal_attack:
@@ -1477,7 +1656,7 @@ MonType:        .res MAX_MONSTERS
     asl
     asl                     ; (type+1)*8
     cmp DG_TempC
-    bcc @ai_next            ; Miss
+    bcc @mon_miss           ; Miss
 
     ; Hit! Damage = PrngNext & (type+1) + 1
     jsr PrngNext
@@ -1499,6 +1678,31 @@ MonType:        .res MAX_MONSTERS
     lda #$0000
 :   sta PlayerHP
     SET_A8
+    ; Message: "MONSTER HITS! N DMG"
+    SET_XY16
+    jsr UiMsgInit
+    SET_XY8
+    ldx DG_MonIdx
+    lda MonType,x
+    tax
+    SET_XY16
+    jsr UiMsgAppendMonName
+    lda #<str_msg_mon_hit
+    sta UI_TempPtr
+    lda #>str_msg_mon_hit
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    SET_AXY8
+    lda DG_TempC
+    SET_XY16
+    jsr UiMsgAppendNum
+    lda #<str_msg_dmg
+    sta UI_TempPtr
+    lda #>str_msg_dmg
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    jsr UiMsgShow
+    SET_AXY8
     lda #$01
     sta StatsDirty
 
@@ -1508,8 +1712,32 @@ MonType:        .res MAX_MONSTERS
     SET_A8
     bne @ai_next
     ; Player died!
+    lda #<str_msg_died
+    sta UI_TempPtr
+    lda #>str_msg_died
+    sta UI_TempPtr+1
+    jsr UiSetMessage
     lda #STATE_GAMEOVER
     sta GameState
+    jmp @ai_next
+
+@mon_miss:
+    ; Message: "MONSTER MISSES!"
+    SET_XY16
+    jsr UiMsgInit
+    SET_XY8
+    ldx DG_MonIdx
+    lda MonType,x
+    tax
+    SET_XY16
+    jsr UiMsgAppendMonName
+    lda #<str_msg_mon_miss
+    sta UI_TempPtr
+    lda #>str_msg_mon_miss
+    sta UI_TempPtr+1
+    jsr UiMsgAppendStr
+    jsr UiMsgShow
+    SET_AXY8
 
 @ai_next:
     SET_AXY8
