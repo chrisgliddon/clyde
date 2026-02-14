@@ -1,0 +1,4 @@
+baseURL = 'https://example.org/'
+languageCode = 'en-us'
+title = 'Clyde — SNES Dev Reference'
+theme = 'ananke'

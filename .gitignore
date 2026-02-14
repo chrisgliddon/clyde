@@ -1,0 +1,7 @@
+*.smc
+*.sfc
+*.db-journal
+.DS_Store
+docs/public/
+docs/resources/
+docs/.hugo_build.lock
