@@ -11,24 +11,28 @@ H.run(function()
     H.doChargen(S)
     H.assert_eq(H.readByte(S.GameState), 0x01, "On overworld")
 
-    -- Initial position: X=9, Y=10 (next to castle)
-    H.assert_eq(H.readByte(S.PlayerX), 9, "Initial X = 9")
-    H.assert_eq(H.readByte(S.PlayerY), 10, "Initial Y = 10")
+    -- Player should start adjacent to a castle (the forced one)
+    local px = H.readByte(S.PlayerX)
+    local py = H.readByte(S.PlayerY)
+    local base = S.OverworldMap
+    local function tileAt(x, y)
+        if x < 0 or x >= 20 or y < 0 or y >= 20 then return -1 end
+        return H.readByte(base + y * 20 + x)
+    end
+    local castleDir = nil
+    if tileAt(px+1, py) == 0x04 then castleDir = "right"
+    elseif tileAt(px-1, py) == 0x04 then castleDir = "left"
+    elseif tileAt(px, py+1) == 0x04 then castleDir = "down"
+    elseif tileAt(px, py-1) == 0x04 then castleDir = "up"
+    end
+    H.assert_eq(castleDir ~= nil, true, "Player starts adjacent to castle")
 
-    -- UP → Y decrements
-    H.press("up")
-    H.assert_eq(H.readByte(S.PlayerY), 9, "Moved up: Y = 9")
-    H.assert_eq(H.readByte(S.PlayerX), 9, "X unchanged: X = 9")
+    -- Move onto adjacent castle
+    H.press(castleDir)
 
-    -- DOWN → Y increments back
-    H.press("down")
-    H.assert_eq(H.readByte(S.PlayerY), 10, "Moved down: Y = 10")
-
-    -- RIGHT → (X=10, Y=10) is castle tile
-    H.press("right")
     H.assert_eq(H.readByte(S.GameState), 0x05, "Entered castle")
 
-    -- B → leave castle
+    -- B -> leave castle
     H.press("b")
     H.waitFrames(10)
     H.assert_eq(H.readByte(S.GameState), 0x01, "Back on overworld")

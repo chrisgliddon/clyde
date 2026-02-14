@@ -75,6 +75,39 @@ function H.assert_range(actual, low, high, msg)
 end
 
 -- ============================================================================
+-- Map helpers (procedural overworld)
+-- ============================================================================
+
+function H.writeByte(addr, val)
+    emu.write(addr, val, emu.memType.snesDebug)
+end
+
+function H.findTile(S, tileType)
+    local base = S.OverworldMap
+    for i = 0, 399 do
+        if H.readByte(base + i) == tileType then
+            local x = i % 20
+            local y = math.floor(i / 20)
+            return x, y
+        end
+    end
+    return nil, nil
+end
+
+function H.teleportNear(S, x, y)
+    local px
+    if x > 1 then
+        px = x - 1
+    else
+        px = x + 1
+    end
+    H.writeByte(S.PlayerX, px)
+    H.writeByte(S.PlayerY, y)
+    H.writeByte(S.MapDirty, 1)
+    H.waitFrames(2)
+end
+
+-- ============================================================================
 -- Test lifecycle
 -- ============================================================================
 

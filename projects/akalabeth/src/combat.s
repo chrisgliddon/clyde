@@ -3,7 +3,7 @@
 
 .include "macros.s"
 
-.export CombatInit, RollStats, SeedPrng
+.export CombatInit, RollStats, SeedPrng, PrngByte
 .exportzp PlayerHP, PlayerFood, PlayerGold
 .exportzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 .exportzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS, PlayerQuest

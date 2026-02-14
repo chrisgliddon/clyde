@@ -11,10 +11,17 @@ H.run(function()
     H.doChargen(S)
     H.assert_eq(H.readByte(S.GameState), 0x01, "On overworld")
 
-    -- Navigate to town at (X=3, Y=14)
-    -- Path from (9,10): DOWN×4, LEFT×6
-    for i = 1, 4 do H.press("down") end
-    for i = 1, 6 do H.press("left") end
+    -- Find town on procedural map
+    local tx, ty = H.findTile(S, 0x03)  -- TILE_TOWN
+    assert(tx, "Town not found on map")
+
+    -- Teleport near town and walk onto it
+    H.teleportNear(S, tx, ty)
+    if H.readByte(S.PlayerX) < tx then
+        H.press("right")
+    else
+        H.press("left")
+    end
 
     H.assert_eq(H.readByte(S.GameState), 0x04, "Entered shop")
     H.assert_eq(H.readByte(S.ShopCursor), 0x00, "Cursor at food")
@@ -23,12 +30,12 @@ H.run(function()
     local goldBefore = H.readWord(S.PlayerGold)
     local foodBefore = H.readWord(S.PlayerFood)
 
-    -- A → buy food (cost 1 gold, +10 food)
+    -- A -> buy food (cost 1 gold, +10 food)
     H.press("a")
     H.assert_eq(H.readWord(S.PlayerFood), foodBefore + 10, "Food +10 after buy")
     H.assert_eq(H.readWord(S.PlayerGold), goldBefore - 1, "Gold -1 after food buy")
 
-    -- DOWN → cursor to rapier (index 1)
+    -- DOWN -> cursor to rapier (index 1)
     H.press("down")
     H.assert_eq(H.readByte(S.ShopCursor), 0x01, "Cursor at rapier")
 
@@ -43,7 +50,7 @@ H.run(function()
         print("  SKIP: Not enough gold for rapier (" .. goldNow .. ")")
     end
 
-    -- B → leave shop
+    -- B -> leave shop
     H.press("b")
     H.waitFrames(10)
     H.assert_eq(H.readByte(S.GameState), 0x01, "Back on overworld")

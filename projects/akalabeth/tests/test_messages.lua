@@ -41,9 +41,15 @@ H.run(function()
     H.doChargen(S)
     H.assert_eq(H.readByte(S.GameState), 0x01, "On overworld")
 
-    -- Navigate to dungeon at (X=12, Y=15)
-    for i = 1, 5 do H.press("down") end
-    for i = 1, 3 do H.press("right") end
+    -- Find dungeon on procedural map
+    local dx, dy = H.findTile(S, 0x05)  -- TILE_DUNGEON
+    assert(dx, "Dungeon not found on map")
+    H.teleportNear(S, dx, dy)
+    if H.readByte(S.PlayerX) < dx then
+        H.press("right")
+    else
+        H.press("left")
+    end
 
     H.assert_eq(H.readByte(S.GameState), 0x02, "Entered dungeon")
 

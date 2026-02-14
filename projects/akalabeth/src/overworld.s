@@ -4,13 +4,14 @@
 .include "macros.s"
 
 .export OverworldInit, OverworldUpdate, OverworldRender
-.export TilemapBuffer
+.export TilemapBuffer, OverworldMap
 .exportzp PlayerX, PlayerY, MapDirty
 
 .importzp JoyPress, GameState, ShopCursor
 .importzp PlayerFood, PlayerHP
+.importzp ChargenSeed
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT
-.import DungeonInit
+.import DungeonInit, PrngByte, SeedPrng
 
 ; ============================================================================
 ; Constants
@@ -29,6 +30,8 @@ TILE_DUNGEON    = $05
 TILE_FOREST     = $06
 TILE_PLAYER     = $07
 
+RDMPYL          = $4216     ; Division remainder
+
 STATE_OVERWORLD = $01
 STATE_DUNGEON   = $02
 STATE_SHOP      = $04
@@ -45,6 +48,8 @@ MapDirty:       .res 1
 OW_TempA:       .res 1      ; Candidate Y / general temp
 OW_TempB:       .res 1      ; Candidate X / general temp
 OW_Offset:      .res 2      ; 16-bit calculated offset
+OW_GenRow:      .res 1      ; Current row during generation
+OW_GenCol:      .res 1      ; Current col during generation
 
 ; ============================================================================
 ; BSS
@@ -92,18 +97,65 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
 .endproc
 
 ; ============================================================================
-; OverworldInit — generate map, place player
+; GetInteriorCoord — random interior map position (row 1-18, col 1-18)
+; Returns: OW_GenRow, OW_GenCol set, X = map offset (16-bit)
+; Assumes: A8. Returns: A8, XY16.
+; ============================================================================
+.proc GetInteriorCoord
+    jsr PrngByte            ; A = random 0-255 (X/Y untouched)
+    sta WRDIVL
+    stz WRDIVH
+    lda #18
+    sta WRDIVB              ; triggers division, wait 16 cycles
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL              ; remainder = 0-17
+    inc a                   ; 1-18
+    sta OW_GenRow
+
+    jsr PrngByte
+    sta WRDIVL
+    stz WRDIVH
+    lda #18
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL
+    inc a
+    sta OW_GenCol
+
+    ; Compute map offset
+    sta OW_TempB            ; col
+    lda OW_GenRow           ; row
+    SET_XY16
+    jsr CalcMapOffset       ; X = row*20 + col (returns A8, XY16)
+    rts
+.endproc
+
+; ============================================================================
+; OverworldInit — procedural map generation from ChargenSeed
+; Same seed = same map. Distribution matches original Apple II algorithm.
 ; ============================================================================
 .proc OverworldInit
-    SET_AXY8
+    ; Re-seed PRNG from ChargenSeed for reproducible maps
+    SET_A16
+    lda ChargenSeed
+    jsr SeedPrng
+    .a8                     ; SeedPrng returns A8; resync assembler
 
-    ; Place player next to castle
-    lda #(MAP_W / 2) - 1
-    sta PlayerX
-    lda #MAP_H / 2
-    sta PlayerY
-
-    ; Fill map with grass (8-bit loop, one byte at a time)
+    ; === Fill map with grass ===
     SET_XY16
     ldx #$0000
     lda #TILE_GRASS
@@ -113,23 +165,22 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     cpx #MAP_SIZE
     bne @fill
 
-    ; Border = mountains (top and bottom rows)
+    ; === Border mountains: top and bottom rows ===
     ldx #$0000
 @border_tb:
     lda #TILE_MOUNTAIN
-    sta OverworldMap,x                      ; Top row
-    sta OverworldMap + (MAP_H-1)*MAP_W,x    ; Bottom row
+    sta OverworldMap,x
+    sta OverworldMap + (MAP_H-1)*MAP_W,x
     inx
     cpx #MAP_W
     bne @border_tb
 
-    ; Left and right columns
+    ; === Border mountains: left and right columns ===
     ldx #$0000
 @border_lr:
     lda #TILE_MOUNTAIN
-    sta OverworldMap,x                      ; Left
-    sta OverworldMap + (MAP_W - 1),x        ; Right
-    ; X += MAP_W (16-bit)
+    sta OverworldMap,x
+    sta OverworldMap + (MAP_W - 1),x
     SET_A16
     txa
     clc
@@ -139,40 +190,120 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     cpx #MAP_SIZE
     bcc @border_lr
 
-    ; Place features
-    lda #TILE_CASTLE
-    sta OverworldMap + 10 * MAP_W + 10
-
-    lda #TILE_TOWN
-    sta OverworldMap + 3 * MAP_W + 5
-    sta OverworldMap + 14 * MAP_W + 3
-
-    lda #TILE_DUNGEON
-    sta OverworldMap + 6 * MAP_W + 15
-    sta OverworldMap + 15 * MAP_W + 12
-
+    ; === Generate interior terrain (rows 1-18, cols 1-18) ===
+    ; Distribution: grass 73%, mountain 12%, forest 8%, castle 2.5%, dungeon 1.2%
+    lda #1
+    sta OW_GenRow
+@gen_row:
+    lda #1
+    sta OW_TempB
+    lda OW_GenRow
+    SET_XY16
+    jsr CalcMapOffset       ; X = row*20+1 (returns A8, XY16)
+    lda #1
+    sta OW_GenCol
+@gen_col:
+    jsr PrngByte            ; A = random 0-255, X/Y untouched
+    cmp #188
+    bcs @not_grass
+    lda #TILE_GRASS
+    bra @write_tile
+@not_grass:
+    cmp #219
+    bcs @not_mountain
     lda #TILE_MOUNTAIN
-    sta OverworldMap + 7 * MAP_W + 8
-    sta OverworldMap + 7 * MAP_W + 9
-    sta OverworldMap + 8 * MAP_W + 8
-    sta OverworldMap + 4 * MAP_W + 12
-    sta OverworldMap + 5 * MAP_W + 12
-
-    lda #TILE_WATER
-    sta OverworldMap + 11 * MAP_W + 4
-    sta OverworldMap + 11 * MAP_W + 5
-    sta OverworldMap + 12 * MAP_W + 4
-    sta OverworldMap + 12 * MAP_W + 5
-
+    bra @write_tile
+@not_mountain:
+    cmp #240
+    bcs @not_forest
     lda #TILE_FOREST
-    sta OverworldMap + 3 * MAP_W + 15
-    sta OverworldMap + 3 * MAP_W + 16
-    sta OverworldMap + 9 * MAP_W + 3
-    sta OverworldMap + 9 * MAP_W + 4
+    bra @write_tile
+@not_forest:
+    cmp #253
+    bcs @is_dungeon
+    ; Castle range (240-252): 50% coin flip → castle or grass
+    jsr PrngByte            ; X/Y still untouched
+    cmp #128
+    bcs @is_castle
+    lda #TILE_GRASS
+    bra @write_tile
+@is_castle:
+    lda #TILE_CASTLE
+    bra @write_tile
+@is_dungeon:
+    lda #TILE_DUNGEON
+@write_tile:
+    sta OverworldMap,x
+    inx
+    inc OW_GenCol
+    lda OW_GenCol
+    cmp #19                 ; cols 1 through 18
+    bcc @gen_col
 
+    inc OW_GenRow
+    lda OW_GenRow
+    cmp #19                 ; rows 1 through 18
+    bcc @gen_row
+
+    ; === Force one town at random interior position ===
+    jsr GetInteriorCoord
+    lda #TILE_TOWN
+    sta OverworldMap,x
+
+    ; === Force one castle at random interior position ===
+@force_castle:
+    jsr GetInteriorCoord
+    lda OverworldMap,x
+    cmp #TILE_TOWN
+    beq @force_castle       ; retry if overlapping town
+    lda #TILE_CASTLE
+    sta OverworldMap,x
+    ; Save castle position for player placement
+    lda OW_GenRow
+    pha
+    lda OW_GenCol
+    pha
+
+    ; === Ensure at least one dungeon ===
+    SET_XY16
+    ldx #$0000
+@scan_dung:
+    lda OverworldMap,x
+    cmp #TILE_DUNGEON
+    beq @has_dungeon
+    inx
+    cpx #MAP_SIZE
+    bne @scan_dung
+    ; No dungeon found — force-place one
+@force_dungeon:
+    jsr GetInteriorCoord
+    lda OverworldMap,x
+    cmp #TILE_TOWN
+    beq @force_dungeon
+    cmp #TILE_CASTLE
+    beq @force_dungeon
+    lda #TILE_DUNGEON
+    sta OverworldMap,x
+
+@has_dungeon:
+    ; === Place player adjacent to forced castle ===
+    SET_AXY8
+    pla                     ; castle X (last pushed)
+    sta OW_TempB
+    pla                     ; castle Y
+    sta PlayerY
+    lda OW_TempB
+    cmp #1
+    beq @castle_left
+    dec a
+    sta PlayerX
+    bra @init_done
+@castle_left:
+    inc a
+    sta PlayerX
+@init_done:
     lda #$01
     sta MapDirty
-
     rts
 .endproc
 
