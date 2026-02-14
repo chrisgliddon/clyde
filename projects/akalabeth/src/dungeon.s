@@ -7,10 +7,10 @@
 
 .importzp JoyPress, GameState, MapDirty
 .importzp PlayerHP, PlayerFood, PlayerGold
-.importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerQuest
+.importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS, PlayerQuest
 .importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
-.importzp DiffLevel, StatsDirty
-.import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_A, JOY_B
+.importzp PlayerClass, DiffLevel, StatsDirty
+.import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_A, JOY_B, JOY_SELECT
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
 
 ; ============================================================================
@@ -376,6 +376,8 @@ MonType:        .res MAX_MONSTERS
     bne @do_attack
     bit #JOY_B
     bne @do_stairs
+    bit #JOY_SELECT
+    bne @do_amulet
     SET_A8
     rts
 
@@ -386,6 +388,10 @@ MonType:        .res MAX_MONSTERS
 @do_stairs:
     SET_A8
     jmp @use_stairs
+
+@do_amulet:
+    SET_A8
+    jmp @use_amulet
 
 @turn_left:
     SET_A8
@@ -670,12 +676,19 @@ MonType:        .res MAX_MONSTERS
     jsr PrngNext
     sta DG_TempC
     ; Best weapon: rapier > axe > bow > shield > hands
+    ; Mages can't use rapier or bow
+    lda PlayerClass
+    bne @atk_skip_rapier    ; Mage → skip rapier
     lda PlayerRapier
     bne @atk_rapier
+@atk_skip_rapier:
     lda PlayerAxe
     bne @atk_axe
+    lda PlayerClass
+    bne @atk_skip_bow       ; Mage → skip bow
     lda PlayerBow
     bne @atk_bow
+@atk_skip_bow:
     lda PlayerShield
     bne @atk_shield
     lda DG_TempC
@@ -803,6 +816,190 @@ MonType:        .res MAX_MONSTERS
     bne :+
     jmp @go_down
 :   rts
+
+@use_amulet:
+    ; Check if player has an amulet
+    lda PlayerAmulet
+    bne :+
+    jmp @render_exit            ; No amulet — do nothing
+:
+    ; 4% chance of backfire (PrngNext < 10 ≈ 4%)
+    jsr PrngNext
+    cmp #10
+    bcs @amulet_normal
+
+    ; Backfire! Random bad effect
+    jsr PrngNext
+    and #$01
+    beq @backfire_toad
+    ; Backfire: HP / 2
+    SET_A16
+    lda PlayerHP
+    lsr
+    bne :+
+    lda #$0001                  ; At least 1 HP
+:   sta PlayerHP
+    SET_A8
+    jmp @amulet_consume
+
+@backfire_toad:
+    ; All stats = 3
+    lda #$03
+    sta PlayerSTR
+    sta PlayerDEX
+    sta PlayerSTA
+    sta PlayerWIS
+    jmp @amulet_consume
+
+@amulet_normal:
+    ; Mage: random of 3 effects (ladder up, ladder down, magic kill)
+    ; Fighter: magic kill only
+    lda PlayerClass
+    beq @amulet_magic_kill      ; Fighter → magic kill
+    ; Mage: random of 3 effects
+    jsr PrngNext
+    sta DG_TempC
+    and #$03                    ; 0-3
+    cmp #$03
+    bcc :+
+    lda #$00                    ; Clamp to 0-2
+:   beq @amulet_ladder_up
+    cmp #$01
+    beq @amulet_ladder_dn
+    ; 2 = magic kill
+    jmp @amulet_magic_kill
+
+@amulet_ladder_up:
+    ; Place stairs up at player position
+    lda DungPlayerX
+    sta DG_TempB
+    SET_XY16
+    lda DungPlayerY
+    jsr CalcDungOffset
+    lda #DTILE_STAIRS_UP
+    sta DungeonGrid,x
+    SET_AXY8
+    jmp @amulet_consume
+
+@amulet_ladder_dn:
+    ; Place stairs down at player position
+    lda DungPlayerX
+    sta DG_TempB
+    SET_XY16
+    lda DungPlayerY
+    jsr CalcDungOffset
+    lda #DTILE_STAIRS_DN
+    sta DungeonGrid,x
+    SET_AXY8
+    jmp @amulet_consume
+
+@amulet_magic_kill:
+    ; Find nearest monster (Manhattan distance), deal 10+floor damage
+    SET_AXY8
+    lda #$FF
+    sta DG_TempC                ; Best distance so far
+    sta DG_MonIdx               ; Best monster index ($FF = none)
+    ldx #$00
+@mk_scan:
+    lda MonAlive,x
+    beq @mk_next
+    ; Calc Manhattan distance
+    lda MonY,x
+    sec
+    sbc DungPlayerY
+    bpl :+
+    eor #$FF
+    clc
+    adc #$01
+:   sta DG_TempA                ; |dy|
+    lda MonX,x
+    sec
+    sbc DungPlayerX
+    bpl :+
+    eor #$FF
+    clc
+    adc #$01
+:   clc
+    adc DG_TempA                ; distance
+    cmp DG_TempC
+    bcs @mk_next                ; Not closer
+    sta DG_TempC                ; New best distance
+    stx DG_MonIdx               ; New best monster
+@mk_next:
+    inx
+    cpx #MAX_MONSTERS
+    bne @mk_scan
+
+    ; Did we find a monster?
+    lda DG_MonIdx
+    cmp #$FF
+    beq @amulet_consume         ; No monsters → wasted
+
+    ; Apply 10 + floor damage
+    lda #10
+    clc
+    adc DungFloor
+    ldx DG_MonIdx
+    cmp MonHP,x
+    bcc @mk_wound               ; Damage < HP → wound only
+
+    ; Kill monster
+    lda #$00
+    sta MonAlive,x
+    lda MonY,x
+    sta DG_TempA
+    lda MonX,x
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_FLOOR
+    sta DungeonGrid,x
+    ; Award gold
+    SET_XY8
+    ldx DG_MonIdx
+    lda MonType,x
+    clc
+    adc DungFloor
+    clc
+    adc #$02                    ; type+1 + floor+1
+    stz DG_Offset+1
+    sta DG_Offset
+    SET_A16
+    lda PlayerGold
+    clc
+    adc DG_Offset
+    sta PlayerGold
+    SET_A8
+    ; Quest check
+    ldx DG_MonIdx
+    lda MonType,x
+    cmp PlayerQuest
+    bne @amulet_consume
+    lda PlayerQuest
+    ora #$80
+    sta PlayerQuest
+    jmp @amulet_consume
+
+@mk_wound:
+    ; Damage but not kill
+    sta DG_TempA
+    lda MonHP,x
+    sec
+    sbc DG_TempA
+    sta MonHP,x
+
+@amulet_consume:
+    ; 25% chance amulet crumbles (PrngNext < 64)
+    jsr PrngNext
+    cmp #64
+    bcs @amulet_done
+    dec PlayerAmulet
+@amulet_done:
+    lda #$01
+    sta StatsDirty
+    SET_XY16
+    jmp @render_exit
 .endproc
 
 ; ============================================================================
