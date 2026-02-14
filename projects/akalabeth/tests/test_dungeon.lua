@@ -22,6 +22,7 @@ H.run(function()
     else
         H.press("left")
     end
+    H.waitFrames(60)  -- Wait for dungeon entry fade
 
     H.assert_eq(H.readByte(S.GameState), 0x02, "Entered dungeon")
     H.assert_eq(H.readByte(S.DungFloor), 0x00, "Floor 0")
@@ -34,7 +35,7 @@ H.run(function()
 
     -- Monitor GameState frame by frame
     print("  DEBUG: Monitoring GameState after B press:")
-    for i = 1, 15 do
+    for i = 1, 60 do
         coroutine.yield()
         local gs = H.readByte(S.GameState)
         local hp = H.readWord(S.PlayerHP)

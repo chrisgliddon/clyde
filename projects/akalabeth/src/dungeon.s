@@ -15,6 +15,7 @@
 .importzp UI_TempPtr
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_A, JOY_B, JOY_SELECT
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
+.import FadeOut, FadeIn
 .import UiSetMessage, UiMsgInit, UiMsgAppendStr, UiMsgAppendNum
 .import UiMsgAppendMonName, UiMsgShow
 .import str_msg_hit, str_msg_miss, str_msg_killed, str_msg_quest
@@ -65,7 +66,7 @@ DGTILE_DOOR     = $03       ; Door arch
 DGTILE_FLOOR    = $04       ; Floor pattern
 DGTILE_STAIRS   = $05       ; Stairs
 DGTILE_CHEST    = $06       ; Chest
-DGTILE_MONSTER  = $08       ; Monster figure
+DGTILE_MONSTER_BASE = $08   ; First monster tile (10 tiles: $08-$11)
 
 MAX_MONSTERS    = 10
 
@@ -180,12 +181,9 @@ MonType:        .res MAX_MONSTERS
 
     jsr GenerateFloor
     jsr PlaceMonsters
-    lda #FORCE_BLANK
-    sta INIDISP
-    sta SHADOW_INIDISP
+    jsr FadeOut
     jsr GfxUploadDungeon
-    lda #BRIGHTNESS_MAX
-    sta SHADOW_INIDISP
+    jsr FadeIn
     jsr DungeonRender
     lda #$01
     sta MapDirty
@@ -957,9 +955,7 @@ MonType:        .res MAX_MONSTERS
 @amulet_normal:
     ; Mage: random of 3 effects (ladder up, ladder down, magic kill)
     ; Fighter: magic kill only
-    lda PlayerClass
-    beq @amulet_magic_kill      ; Fighter → magic kill
-    ; Mage: random of 3 effects
+    ; Random of 3 effects (both classes)
     jsr PrngNext
     sta DG_TempC
     and #$03                    ; 0-3
@@ -1872,9 +1868,35 @@ MonType:        .res MAX_MONSTERS
     jsr DrawDoorD1
     jmp @render_done
 @draw_monster_d1:
+    jsr FindMonsterAt
+    bcs @d1_default
+    SET_XY8
+    lda MonType,x
+    SET_XY16
+    clc
+    adc #DGTILE_MONSTER_BASE
+    sta DG_TempC
+    jmp @d1_draw
+@d1_default:
+    lda #DGTILE_MONSTER_BASE
+    sta DG_TempC
+@d1_draw:
     jsr DrawMonsterD1
     jmp @render_done
 @draw_monster_d2:
+    jsr FindMonsterAt
+    bcs @d2_default
+    SET_XY8
+    lda MonType,x
+    SET_XY16
+    clc
+    adc #DGTILE_MONSTER_BASE
+    sta DG_TempC
+    jmp @d2_draw
+@d2_default:
+    lda #DGTILE_MONSTER_BASE
+    sta DG_TempC
+@d2_draw:
     jsr DrawMonsterD2
     jmp @render_done
 
@@ -2301,7 +2323,7 @@ MonType:        .res MAX_MONSTERS
 @row:
     ldx #13
 @col:
-    lda #DGTILE_MONSTER
+    lda DG_TempC
     jsr WriteTile
     inx
     cpx #19
@@ -2320,7 +2342,7 @@ MonType:        .res MAX_MONSTERS
 @row:
     ldx #14
 @col:
-    lda #DGTILE_MONSTER
+    lda DG_TempC
     jsr WriteTile
     inx
     cpx #18

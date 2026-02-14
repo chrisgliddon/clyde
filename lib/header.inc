@@ -39,9 +39,15 @@
     .byte GAME_TITLE
 
     .byte $20               ; Map mode: LoROM
-    .byte $00               ; Cartridge type: ROM only
+    .ifndef CART_TYPE
+        CART_TYPE = $00
+    .endif
+    .ifndef SRAM_SIZE
+        SRAM_SIZE = $00
+    .endif
+    .byte CART_TYPE          ; Cartridge type (default: ROM only)
     .byte $07               ; ROM size: 128KB (2^7 = 128K)
-    .byte $00               ; RAM size: 0KB
+    .byte SRAM_SIZE          ; RAM size (default: 0KB)
     .byte $01               ; Country: North America
     .byte $00               ; Developer ID
     .byte $00               ; ROM version

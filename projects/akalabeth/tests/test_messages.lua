@@ -50,6 +50,7 @@ H.run(function()
     else
         H.press("left")
     end
+    H.waitFrames(60)  -- Wait for dungeon entry fade
 
     H.assert_eq(H.readByte(S.GameState), 0x02, "Entered dungeon")
 

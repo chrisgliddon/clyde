@@ -60,7 +60,11 @@ function H.assert_eq(actual, expected, msg)
         print("  PASS: " .. msg)
     else
         failCount = failCount + 1
-        print(string.format("  FAIL: %s (expected 0x%X, got 0x%X)", msg, expected, actual))
+        if type(expected) == "number" and type(actual) == "number" then
+            print(string.format("  FAIL: %s (expected 0x%X, got 0x%X)", msg, expected, actual))
+        else
+            print(string.format("  FAIL: %s (expected %s, got %s)", msg, tostring(expected), tostring(actual)))
+        end
     end
 end
 
@@ -157,10 +161,10 @@ function H.doChargen(S)
     H.press("a")
     -- A: accept stats → chargen class
     H.press("a")
-    -- A: confirm fighter → overworld
+    -- A: confirm fighter → overworld (fade transition ~30 frames)
     H.press("a")
-    -- Wait for gfx upload + state transition
-    H.waitFrames(10)
+    -- Wait for fade out + gfx upload + fade in + state transition
+    H.waitFrames(60)
 end
 
 return H

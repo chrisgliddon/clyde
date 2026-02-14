@@ -516,7 +516,8 @@ FONT_TILES_SIZE = * - FontTiles ; 1536 bytes (96 glyphs × 16)
 
 ; ----------------------------------------------------------------------------
 ; Dungeon tiles — 4bpp, 8x8 B&W wireframe
-; 8 tiles: floor, wall, wall-filled, door, floor-pattern, stairs, chest, wall-edge
+; 18 tiles: floor, wall, wall-filled, door, floor-pattern, stairs, chest, wall-edge
+; monster tiles $08-$11: skeleton, thief, giant rat, orc, viper, carrion crawler, gremlin, mimic, daemon, balrog
 ; ----------------------------------------------------------------------------
 
 DungeonTiles:
@@ -571,11 +572,65 @@ DungeonTiles:
 .byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0  ; BP 2,3
 .byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0
 
-; Tile 8: Monster — wireframe humanoid figure
-.byte $18,$18, $24,$24, $18,$18, $7E,$7E  ; BP 0,1
-.byte $18,$18, $18,$18, $24,$24, $42,$42
-.byte $18,$18, $24,$24, $18,$18, $7E,$7E  ; BP 2,3
-.byte $18,$18, $18,$18, $24,$24, $42,$42
+; Tile $08: Skeleton — skull + ribcage
+.byte $3C,$3C, $42,$42, $3C,$3C, $18,$18  ; BP 0,1
+.byte $7E,$7E, $5A,$5A, $3C,$3C, $24,$24
+.byte $3C,$3C, $42,$42, $3C,$3C, $18,$18  ; BP 2,3
+.byte $7E,$7E, $5A,$5A, $3C,$3C, $24,$24
+
+; Tile $09: Thief — hooded figure with dagger
+.byte $18,$18, $3C,$3C, $18,$18, $3C,$3C  ; BP 0,1
+.byte $5A,$5A, $18,$18, $24,$24, $24,$24
+.byte $18,$18, $3C,$3C, $18,$18, $3C,$3C  ; BP 2,3
+.byte $5A,$5A, $18,$18, $24,$24, $24,$24
+
+; Tile $0A: Giant Rat — low quadruped with tail
+.byte $00,$00, $00,$00, $38,$38, $7C,$7C  ; BP 0,1
+.byte $FE,$FE, $44,$44, $44,$44, $02,$02
+.byte $00,$00, $00,$00, $38,$38, $7C,$7C  ; BP 2,3
+.byte $FE,$FE, $44,$44, $44,$44, $02,$02
+
+; Tile $0B: Orc — broad squat humanoid
+.byte $3C,$3C, $7E,$7E, $3C,$3C, $7E,$7E  ; BP 0,1
+.byte $FF,$FF, $7E,$7E, $24,$24, $66,$66
+.byte $3C,$3C, $7E,$7E, $3C,$3C, $7E,$7E  ; BP 2,3
+.byte $FF,$FF, $7E,$7E, $24,$24, $66,$66
+
+; Tile $0C: Viper — sinuous S-curve snake
+.byte $06,$06, $0E,$0E, $1C,$1C, $38,$38  ; BP 0,1
+.byte $70,$70, $E0,$E0, $70,$70, $38,$38
+.byte $06,$06, $0E,$0E, $1C,$1C, $38,$38  ; BP 2,3
+.byte $70,$70, $E0,$E0, $70,$70, $38,$38
+
+; Tile $0D: Carrion Crawler — segmented worm
+.byte $00,$00, $7E,$7E, $FF,$FF, $DB,$DB  ; BP 0,1
+.byte $FF,$FF, $DB,$DB, $7E,$7E, $00,$00
+.byte $00,$00, $7E,$7E, $FF,$FF, $DB,$DB  ; BP 2,3
+.byte $FF,$FF, $DB,$DB, $7E,$7E, $00,$00
+
+; Tile $0E: Gremlin — small imp with pointed ears
+.byte $42,$42, $3C,$3C, $7E,$7E, $18,$18  ; BP 0,1
+.byte $3C,$3C, $18,$18, $24,$24, $00,$00
+.byte $42,$42, $3C,$3C, $7E,$7E, $18,$18  ; BP 2,3
+.byte $3C,$3C, $18,$18, $24,$24, $00,$00
+
+; Tile $0F: Mimic — chest with teeth
+.byte $00,$00, $7E,$7E, $5A,$5A, $7E,$7E  ; BP 0,1
+.byte $4A,$4A, $42,$42, $7E,$7E, $00,$00
+.byte $00,$00, $7E,$7E, $5A,$5A, $7E,$7E  ; BP 2,3
+.byte $4A,$4A, $42,$42, $7E,$7E, $00,$00
+
+; Tile $10: Daemon — winged humanoid
+.byte $18,$18, $3C,$3C, $18,$18, $FF,$FF  ; BP 0,1
+.byte $DB,$DB, $18,$18, $24,$24, $42,$42
+.byte $18,$18, $3C,$3C, $18,$18, $FF,$FF  ; BP 2,3
+.byte $DB,$DB, $18,$18, $24,$24, $42,$42
+
+; Tile $11: Balrog — large horned figure
+.byte $66,$66, $3C,$3C, $18,$18, $FF,$FF  ; BP 0,1
+.byte $7E,$7E, $3C,$3C, $66,$66, $C3,$C3
+.byte $66,$66, $3C,$3C, $18,$18, $FF,$FF  ; BP 2,3
+.byte $7E,$7E, $3C,$3C, $66,$66, $C3,$C3
 
 DUNGEON_TILES_SIZE = * - DungeonTiles
 

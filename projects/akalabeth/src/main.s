@@ -18,6 +18,7 @@
 .import UiShowGameOver, UiShowVictory
 .import UiClearBg3, UiTickMessage
 .import GfxUploadOverworld, GfxUploadFont
+.import SaveGame, LoadGame, EraseSave
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
 .importzp PlayerHP, PlayerFood, PlayerGold, PlayerQuest
@@ -38,7 +39,11 @@
 ; ============================================================================
 
 .export ResetHandler
+.export FadeOut, FadeIn
 .exportzp GameState, ChargenSeed, ShopCursor
+
+CART_TYPE = $02             ; ROM + SRAM + battery
+SRAM_SIZE = $03             ; 8KB (2^3)
 
 .include "header.inc"
 
@@ -50,6 +55,8 @@
 GameState:      .res 1
 ChargenSeed:    .res 2          ; Lucky number (auto-increments)
 ShopCursor:     .res 1          ; 0-5: selected item in shop
+FadeTarget:     .res 1
+FadeActive:     .res 1
 
 ; ============================================================================
 ; Constants
@@ -86,6 +93,57 @@ STATE_CHARGEN_CLASS = $09
     lda #FORCE_BLANK
     sta SHADOW_INIDISP
     jmp Main
+.endproc
+
+; ============================================================================
+; FadeOut — ramp brightness from current to 0, then set force blank
+; Blocks until complete (15 frames max). Call with A8.
+; ============================================================================
+.proc FadeOut
+    SET_AXY8
+@loop:
+    lda SHADOW_INIDISP
+    and #$0F                ; Get current brightness
+    beq @done               ; Already at 0
+    dec a
+    sta SHADOW_INIDISP
+    stz FrameReady
+@wait:
+    wai
+    lda FrameReady
+    beq @wait
+    jmp @loop
+@done:
+    lda #FORCE_BLANK
+    sta SHADOW_INIDISP
+    sta INIDISP
+    rts
+.endproc
+
+; ============================================================================
+; FadeIn — clear force blank, ramp brightness from 0 to max
+; Blocks until complete (15 frames). Call with A8.
+; ============================================================================
+.proc FadeIn
+    SET_AXY8
+    lda #$00
+    sta SHADOW_INIDISP      ; Start at brightness 0 (no force blank)
+@loop:
+    stz FrameReady
+@wait:
+    wai
+    lda FrameReady
+    beq @wait
+    lda SHADOW_INIDISP
+    and #$0F
+    cmp #$0F                ; Max brightness?
+    beq @done
+    lda SHADOW_INIDISP
+    inc a
+    sta SHADOW_INIDISP
+    jmp @loop
+@done:
+    rts
 .endproc
 
 ; ============================================================================
@@ -327,12 +385,9 @@ STATE_CHARGEN_CLASS = $09
     jsr CombatInit
     jsr OverworldInit
     jsr UiClearBg3
-    lda #FORCE_BLANK
-    sta INIDISP
-    sta SHADOW_INIDISP
+    jsr FadeOut
     jsr GfxUploadOverworld
-    lda #BRIGHTNESS_MAX
-    sta SHADOW_INIDISP
+    jsr FadeIn
     jsr OverworldRender
     lda #$01
     sta MapDirty
@@ -364,17 +419,15 @@ STATE_CHARGEN_CLASS = $09
 :   jmp @loop
 @exit_dungeon_gfx:
     jsr UiClearBg3
-    lda #FORCE_BLANK
-    sta INIDISP
-    sta SHADOW_INIDISP
+    jsr FadeOut
     jsr GfxUploadOverworld
-    lda #BRIGHTNESS_MAX
-    sta SHADOW_INIDISP
+    jsr FadeIn
     jsr OverworldRender
     lda #$01
     sta MapDirty
     sta StatsDirty
     jsr UiDrawStats
+    jsr SaveGame
     jmp @loop
 
 ; --- Shop ---
@@ -413,17 +466,15 @@ STATE_CHARGEN_CLASS = $09
 @leave_shop:
     SET_A8
     jsr UiClearBg3
-    lda #FORCE_BLANK
-    sta INIDISP
-    sta SHADOW_INIDISP
+    jsr FadeOut
     jsr GfxUploadOverworld
-    lda #BRIGHTNESS_MAX
-    sta SHADOW_INIDISP
+    jsr FadeIn
     jsr OverworldRender
     lda #STATE_OVERWORLD
     sta GameState
     lda #$01
     sta MapDirty
+    jsr SaveGame
     jmp @loop
 
 @buy_item:
@@ -531,17 +582,15 @@ STATE_CHARGEN_CLASS = $09
 @leave_castle:
     SET_A8
     jsr UiClearBg3
-    lda #FORCE_BLANK
-    sta INIDISP
-    sta SHADOW_INIDISP
+    jsr FadeOut
     jsr GfxUploadOverworld
-    lda #BRIGHTNESS_MAX
-    sta SHADOW_INIDISP
+    jsr FadeIn
     jsr OverworldRender
     lda #STATE_OVERWORLD
     sta GameState
     lda #$01
     sta MapDirty
+    jsr SaveGame
     jmp @loop
 
 @accept_quest:
@@ -569,6 +618,7 @@ STATE_CHARGEN_CLASS = $09
     sta PlayerSTR
     lda #$01
     sta StatsDirty
+    jsr SaveGame
     jmp @loop
 
 @victory:
@@ -593,6 +643,7 @@ STATE_CHARGEN_CLASS = $09
     beq :+
     lda #STATE_TITLE
     sta GameState
+    jsr EraseSave
     jsr UiShowTitle
     lda #$01
     sta StatsDirty

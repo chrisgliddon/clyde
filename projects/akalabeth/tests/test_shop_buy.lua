@@ -50,9 +50,9 @@ H.run(function()
         print("  SKIP: Not enough gold for rapier (" .. goldNow .. ")")
     end
 
-    -- B -> leave shop
+    -- B -> leave shop (fade transition ~30 frames)
     H.press("b")
-    H.waitFrames(10)
+    H.waitFrames(60)
     H.assert_eq(H.readByte(S.GameState), 0x01, "Back on overworld")
 
     H.done()

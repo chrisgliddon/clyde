@@ -32,9 +32,9 @@ H.run(function()
 
     H.assert_eq(H.readByte(S.GameState), 0x05, "Entered castle")
 
-    -- B -> leave castle
+    -- B -> leave castle (fade transition ~30 frames)
     H.press("b")
-    H.waitFrames(10)
+    H.waitFrames(60)
     H.assert_eq(H.readByte(S.GameState), 0x01, "Back on overworld")
 
     H.done()

@@ -41,9 +41,9 @@ H.run(function()
     H.press("left")
     H.assert_eq(H.readByte(S.PlayerClass), 0x00, "Toggled back to Fighter")
 
-    -- A → confirm class, start game
+    -- A → confirm class, start game (fade transition ~30 frames)
     H.press("a")
-    H.waitFrames(10)
+    H.waitFrames(60)
     H.assert_eq(H.readByte(S.GameState), 0x01, "Entered overworld")
 
     -- Verify CombatInit ran correctly
