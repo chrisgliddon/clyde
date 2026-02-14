@@ -1,16 +1,13 @@
-; combat.s — Akalabeth turn-based combat system
-; Player stats, weapons, 10 monster types, turn-based combat
+; combat.s — Akalabeth player stats, stat rolling, PRNG
+; Combat itself is now inline in dungeon.s
 
 .include "macros.s"
 
-.export CombatInit, CombatUpdate, RollStats, SeedPrng
+.export CombatInit, RollStats, SeedPrng
 .exportzp PlayerHP, PlayerFood, PlayerGold
 .exportzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 .exportzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS, PlayerQuest
 .exportzp PlayerClass, DiffLevel
-
-.importzp JoyPress, GameState, MapDirty
-.import JOY_A, JOY_B
 
 ; ============================================================================
 ; Constants
@@ -18,35 +15,6 @@
 
 ; Hardware multiplier result registers
 RDMPYH          = $4217     ; Product high byte
-
-WEAPON_RAPIER   = $00
-WEAPON_AXE      = $01
-WEAPON_BOW      = $02
-WEAPON_SHIELD   = $03
-
-MON_SKELETON    = $00
-MON_THIEF       = $01
-MON_GIANT_RAT   = $02
-MON_ORC         = $03
-MON_VIPER       = $04
-MON_CARRION     = $05
-MON_GREMLIN     = $06
-MON_MIMIC       = $07
-MON_DAEMON      = $08
-MON_BALROG      = $09
-
-NUM_MONSTERS    = 10
-
-; Combat states
-CSTATE_PLAYER   = $00       ; Player's turn
-CSTATE_ENEMY    = $01       ; Enemy's turn
-CSTATE_WON      = $02       ; Victory
-CSTATE_LOST     = $03       ; Defeat
-
-; Game states (must match main.s)
-STATE_OVERWORLD = $01
-STATE_DUNGEON   = $02
-STATE_GAMEOVER  = $06
 
 ; ============================================================================
 ; Zero page
@@ -71,40 +39,7 @@ PlayerQuest:    .res 1      ; Current quest monster (0-9), bit 7 = completed
 PlayerClass:    .res 1      ; 0=Fighter, 1=Mage
 DiffLevel:      .res 1      ; 1-10
 RNG_State:      .res 2      ; 16-bit LFSR state
-
-EnemyType:      .res 1
-EnemyHP:        .res 2
-CombatState:    .res 1
-CB_TempA:       .res 1
-CB_TempB:       .res 2      ; 16-bit temp
-
-; ============================================================================
-; ROM data
-; ============================================================================
-
-.segment "RODATA"
-
-MonsterHP:
-    .word 10, 15, 12, 25, 20, 30, 18, 35, 50, 80
-
-MonsterATK:
-    .byte 3, 5, 4, 8, 6, 10, 7, 12, 18, 25
-
-; Weapon damage values
-WeaponDamage:
-    .byte 10, 5, 4, 1      ; Rapier, Axe, Bow, Shield
-
-MonsterNames:
-    .byte "SKELETON"
-    .byte "THIEF   "
-    .byte "GNT RAT "
-    .byte "ORC     "
-    .byte "VIPER   "
-    .byte "CARRION "
-    .byte "GREMLIN "
-    .byte "MIMIC   "
-    .byte "DAEMON  "
-    .byte "BALROG  "
+CB_TempA:       .res 1      ; Temp for RollStat
 
 ; ============================================================================
 ; Code
@@ -114,6 +49,7 @@ MonsterNames:
 
 ; ============================================================================
 ; CombatInit — init non-stat player fields (call after RollStats)
+; Sets first quest = WIS/3 (clamped 0-9) per original game
 ; ============================================================================
 .proc CombatInit
     SET_A8
@@ -126,7 +62,23 @@ MonsterNames:
     stz PlayerShield
     stz PlayerBow
     stz PlayerAmulet
-    stz PlayerQuest
+
+    ; First quest = INT(WIS/3), clamped 0-9
+    lda PlayerWIS
+    ldx #$00
+@div3:
+    cmp #3
+    bcc @div3_done
+    sec
+    sbc #3
+    inx
+    jmp @div3
+@div3_done:
+    cpx #10
+    bcc :+
+    ldx #9
+:   stx PlayerQuest
+
     rts
 .endproc
 
@@ -205,265 +157,6 @@ MonsterNames:
     lda RDMPYH              ; $4217 = high byte = A*21/256 → range 0-20
     clc
     adc #4                  ; range 4-24
-    rts
-.endproc
-
-; ============================================================================
-; StartCombat — begin combat with monster type in A
-; ============================================================================
-.proc StartCombat
-    SET_A8
-    sta EnemyType
-
-    ; Look up monster HP
-    SET_XY16
-    and #$0F
-    asl                     ; * 2 for word index
-    tax
-    SET_A16
-    lda MonsterHP,x
-    sta EnemyHP
-    SET_A8
-
-    lda #CSTATE_PLAYER
-    sta CombatState
-    rts
-.endproc
-
-; ============================================================================
-; CombatUpdate — turn-based combat state machine
-; A = attack, B = retreat
-; ============================================================================
-.proc CombatUpdate
-    SET_AXY8
-    SET_XY16
-
-    lda CombatState
-    cmp #CSTATE_PLAYER
-    beq @player_turn
-    cmp #CSTATE_ENEMY
-    bne :+
-    jmp @enemy_turn
-:   cmp #CSTATE_WON
-    bne :+
-    jmp @victory
-:   ; CSTATE_LOST or unknown
-    jmp @defeat
-
-@player_turn:
-    SET_A16
-    lda JoyPress
-    bit #JOY_A
-    bne @attack
-    bit #JOY_B
-    bne @do_retreat
-    SET_A8
-    rts
-
-@do_retreat:
-    SET_A8
-    jmp @retreat
-
-@attack:
-    SET_A8
-    ; Hit formula: random chance based on DEX
-    ; Simple: if RNG < DEX*8, hit. Otherwise miss.
-    jsr PrngByte
-    sta CB_TempA            ; Random 0-255
-    lda PlayerDEX
-    asl
-    asl
-    asl                     ; DEX * 8
-    cmp CB_TempA
-    bcc @miss               ; DEX*8 < random → miss
-
-    ; Hit! Damage = RNG(weapon_damage) + STR/4
-    ; Use best available weapon: rapier(10) > axe(5) > bow(4) > shield(1) > hands(0)
-    jsr PrngByte
-    sta CB_TempA            ; Save random
-    lda PlayerRapier
-    bne @use_rapier
-    lda PlayerAxe
-    bne @use_axe
-    lda PlayerBow
-    bne @use_bow
-    lda PlayerShield
-    bne @use_shield
-    ; Bare hands — 0 mask = 0 damage
-    lda CB_TempA
-    and #$00                ; 0 damage from hands
-    jmp @got_dmg
-@use_rapier:
-    lda CB_TempA
-    and #$0F                ; 0-15 (rapier: strong melee)
-    jmp @got_dmg
-@use_axe:
-    lda CB_TempA
-    and #$07                ; 0-7
-    jmp @got_dmg
-@use_bow:
-    lda CB_TempA
-    and #$03                ; 0-3
-    jmp @got_dmg
-@use_shield:
-    lda CB_TempA
-    and #$01                ; 0-1
-@got_dmg:
-    SET_XY16
-    clc
-    adc #$01                ; At least 1 damage
-    sta CB_TempA            ; Base damage
-    lda PlayerSTR
-    lsr
-    lsr                     ; STR / 4
-    clc
-    adc CB_TempA            ; Total damage
-
-    ; Apply damage to enemy
-    sta CB_TempA
-    stz CB_TempB+1
-    sta CB_TempB
-    SET_A16
-    lda EnemyHP
-    sec
-    sbc CB_TempB
-    bcs :+
-    lda #$0000
-:   sta EnemyHP
-    SET_A8
-
-    ; Check if enemy dead
-    SET_A16
-    lda EnemyHP
-    SET_A8
-    bne @enemy_turn_start
-    ; Enemy killed!
-    lda #CSTATE_WON
-    sta CombatState
-    rts
-
-@miss:
-@enemy_turn_start:
-    lda #CSTATE_ENEMY
-    sta CombatState
-    ; Fall through to enemy turn
-
-@enemy_turn:
-    ; Enemy attacks player
-    ; Hit: if RNG < (monster_ATK + floor_bonus) * 8
-    jsr PrngByte
-    sta CB_TempA
-    SET_XY8
-    ldx EnemyType
-    lda MonsterATK,x
-    SET_XY16
-    asl
-    asl
-    asl                     ; ATK * 8
-    cmp CB_TempA
-    bcc @enemy_miss
-
-    ; Enemy hit! Damage = RNG & monster_ATK + 1
-    jsr PrngByte
-    SET_XY8
-    ldx EnemyType
-    and MonsterATK,x
-    SET_XY16
-    clc
-    adc #$01
-
-    ; Apply to player HP
-    sta CB_TempA
-    stz CB_TempB+1
-    sta CB_TempB
-    SET_A16
-    lda PlayerHP
-    sec
-    sbc CB_TempB
-    bcs :+
-    lda #$0000
-:   sta PlayerHP
-    SET_A8
-
-    ; Check player death
-    SET_A16
-    lda PlayerHP
-    SET_A8
-    bne @back_to_player
-    lda #CSTATE_LOST
-    sta CombatState
-    rts
-
-@enemy_miss:
-@back_to_player:
-    lda #CSTATE_PLAYER
-    sta CombatState
-    rts
-
-@retreat:
-    ; 50% chance to escape
-    jsr PrngByte
-    and #$01
-    beq @escape_fail
-    ; Escape!
-    lda #STATE_DUNGEON
-    sta GameState
-    lda #$01
-    sta MapDirty
-    rts
-@escape_fail:
-    ; Failed — enemy gets a free hit
-    jmp @enemy_turn
-
-@victory:
-    ; Award gold = monster_type + 5
-    lda EnemyType
-    clc
-    adc #$05
-    sta CB_TempA
-    stz CB_TempB+1
-    sta CB_TempB
-    SET_A16
-    lda PlayerGold
-    clc
-    adc CB_TempB
-    sta PlayerGold
-    SET_A8
-
-    ; Check quest completion
-    lda EnemyType
-    cmp PlayerQuest
-    bne @no_quest_advance
-    ; Quest complete!
-    lda PlayerQuest
-    ora #$80                ; Set completion flag
-    sta PlayerQuest
-@no_quest_advance:
-
-    ; Press any button to continue → return to dungeon
-    SET_A16
-    lda JoyPress
-    SET_A8
-    beq @wait_victory       ; Wait for button
-    lda #STATE_DUNGEON
-    sta GameState
-    lda #$01
-    sta MapDirty
-    rts
-@wait_victory:
-    rts
-
-@defeat:
-    ; Transition to game over state
-    SET_A16
-    lda JoyPress
-    SET_A8
-    beq @wait_defeat
-    lda #STATE_GAMEOVER
-    sta GameState
-    lda #$01
-    sta MapDirty
-@wait_defeat:
     rts
 .endproc
 

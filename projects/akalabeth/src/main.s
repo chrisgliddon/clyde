@@ -12,7 +12,7 @@
 .import InitSNES
 .import OverworldInit, OverworldUpdate, OverworldRender
 .import DungeonInit, DungeonUpdate, DungeonRender
-.import CombatInit, CombatUpdate, RollStats, SeedPrng
+.import CombatInit, RollStats, SeedPrng
 .import UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .import UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .import UiShowGameOver, UiShowVictory
@@ -57,7 +57,6 @@ ShopCursor:     .res 1          ; 0-5: selected item in shop
 STATE_TITLE         = $00
 STATE_OVERWORLD     = $01
 STATE_DUNGEON       = $02
-STATE_COMBAT        = $03
 STATE_SHOP          = $04
 STATE_CASTLE        = $05
 STATE_GAMEOVER      = $06
@@ -203,9 +202,6 @@ STATE_CHARGEN_CLASS = $09
 :   cmp #STATE_DUNGEON
     bne :+
     jmp @do_dungeon
-:   cmp #STATE_COMBAT
-    bne :+
-    jmp @do_combat
 :   cmp #STATE_SHOP
     bne :+
     jmp @do_shop
@@ -224,9 +220,12 @@ STATE_CHARGEN_CLASS = $09
     bit #JOY_START
     SET_A8
     beq @loop
-    ; Enter character creation
+    ; Enter character creation (keep DiffLevel if set by victory)
+    lda DiffLevel
+    bne :+
     lda #5
     sta DiffLevel
+:
     stz ChargenSeed
     stz ChargenSeed+1
     lda #STATE_CHARGEN_SEED
@@ -348,12 +347,6 @@ STATE_CHARGEN_CLASS = $09
 ; --- Dungeon ---
 @do_dungeon:
     jsr DungeonUpdate
-    jsr UiDrawStats
-    jmp @loop
-
-; --- Combat ---
-@do_combat:
-    jsr CombatUpdate
     jsr UiDrawStats
     jmp @loop
 
@@ -540,7 +533,13 @@ STATE_CHARGEN_CLASS = $09
     jmp @loop
 
 @victory:
-    lda #STATE_GAMEOVER
+    ; Increment difficulty for next playthrough (cap at 10)
+    lda DiffLevel
+    cmp #10
+    bcs :+
+    inc a
+    sta DiffLevel
+:   lda #STATE_GAMEOVER
     sta GameState
     jsr UiShowVictory
     jmp @loop
