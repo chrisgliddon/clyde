@@ -4,10 +4,13 @@
 .include "macros.s"
 
 .export UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
+.export UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .export Bg3Tilemap
 .exportzp StatsDirty
 
 .importzp PlayerHP, PlayerFood, PlayerGold, PlayerWeapon, PlayerQuest
+.importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS
+.importzp PlayerClass, DiffLevel, ChargenSeed
 .import GfxUploadFont
 
 ; ============================================================================
@@ -314,15 +317,15 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     SET_A8
     jsr UiClearBg3
 
-    ; Configure PPU for text-only display
+    ; Configure PPU for text-only display (via shadow registers)
     lda #$01                ; Mode 1
-    sta BGMODE
+    sta SHADOW_BGMODE
     lda #$30                ; BG3 tilemap at $3000
-    sta BG3SC
+    sta SHADOW_BG3SC
     lda #$01                ; BG3 char base = word $1000
-    sta BG34NBA
+    sta SHADOW_BG34NBA
     lda #$04                ; Enable BG3 only
-    sta TM
+    sta SHADOW_TM
 
     ; Title text
     lda #<str_title1
@@ -479,6 +482,264 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 .endproc
 
 ; ============================================================================
+; UiShowChargenSeed — lucky number + difficulty entry screen
+; ============================================================================
+.proc UiShowChargenSeed
+    SET_A8
+    jsr UiClearBg3
+
+    lda #<str_cg_lucky
+    sta UI_TempPtr
+    lda #>str_cg_lucky
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$06
+    jsr PrintString
+
+    ; Show current seed value at col 6, row 8
+    SET_A16
+    lda ChargenSeed
+    sta UI_DivQuot
+    SET_A8
+    ldx #$06
+    ldy #$08
+    jsr PrintNum16
+
+    lda #<str_cg_level
+    sta UI_TempPtr
+    lda #>str_cg_level
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$0C
+    jsr PrintString
+
+    ; Show difficulty level at col 19, row 12
+    lda DiffLevel
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$13
+    ldy #$0C
+    jsr PrintNum16
+
+    lda #<str_cg_a_confirm
+    sta UI_TempPtr
+    lda #>str_cg_a_confirm
+    sta UI_TempPtr+1
+    ldx #$06
+    ldy #$10
+    jsr PrintString
+
+    lda #<str_cg_updn
+    sta UI_TempPtr
+    lda #>str_cg_updn
+    sta UI_TempPtr+1
+    ldx #$06
+    ldy #$12
+    jsr PrintString
+
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
+; UiShowChargenStats — stat display with accept/reroll
+; ============================================================================
+.proc UiShowChargenStats
+    SET_A8
+    jsr UiClearBg3
+
+    ; HIT POINTS
+    lda #<str_cg_hp
+    sta UI_TempPtr
+    lda #>str_cg_hp
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$04
+    jsr PrintString
+    SET_A16
+    lda PlayerHP
+    sta UI_DivQuot
+    SET_A8
+    ldx #$14
+    ldy #$04
+    jsr PrintNum16
+
+    ; STRENGTH
+    lda #<str_cg_str
+    sta UI_TempPtr
+    lda #>str_cg_str
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$06
+    jsr PrintString
+    lda PlayerSTR
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$14
+    ldy #$06
+    jsr PrintNum16
+
+    ; DEXTERITY
+    lda #<str_cg_dex
+    sta UI_TempPtr
+    lda #>str_cg_dex
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$08
+    jsr PrintString
+    lda PlayerDEX
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$14
+    ldy #$08
+    jsr PrintNum16
+
+    ; STAMINA
+    lda #<str_cg_sta
+    sta UI_TempPtr
+    lda #>str_cg_sta
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0A
+    jsr PrintString
+    lda PlayerSTA
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$14
+    ldy #$0A
+    jsr PrintNum16
+
+    ; WISDOM
+    lda #<str_cg_wis
+    sta UI_TempPtr
+    lda #>str_cg_wis
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0C
+    jsr PrintString
+    lda PlayerWIS
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$14
+    ldy #$0C
+    jsr PrintNum16
+
+    ; GOLD
+    lda #<str_cg_gold
+    sta UI_TempPtr
+    lda #>str_cg_gold
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0E
+    jsr PrintString
+    SET_A16
+    lda PlayerGold
+    sta UI_DivQuot
+    SET_A8
+    ldx #$14
+    ldy #$0E
+    jsr PrintNum16
+
+    ; Controls
+    lda #<str_cg_accept
+    sta UI_TempPtr
+    lda #>str_cg_accept
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$12
+    jsr PrintString
+
+    lda #<str_cg_reroll
+    sta UI_TempPtr
+    lda #>str_cg_reroll
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$14
+    jsr PrintString
+
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
+; UiShowChargenClass — Fighter or Mage choice
+; ============================================================================
+.proc UiShowChargenClass
+    SET_A8
+    jsr UiClearBg3
+
+    lda #<str_cg_class_q
+    sta UI_TempPtr
+    lda #>str_cg_class_q
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$08
+    jsr PrintString
+
+    ; Show current selection with cursor
+    lda PlayerClass
+    beq @show_fighter
+
+    ; Mage selected
+    lda #<str_cg_fighter
+    sta UI_TempPtr
+    lda #>str_cg_fighter
+    sta UI_TempPtr+1
+    ldx #$06
+    ldy #$0C
+    jsr PrintString
+
+    lda #<str_cg_mage_sel
+    sta UI_TempPtr
+    lda #>str_cg_mage_sel
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0E
+    jsr PrintString
+    jmp @show_controls
+
+@show_fighter:
+    lda #<str_cg_fighter_sel
+    sta UI_TempPtr
+    lda #>str_cg_fighter_sel
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$0C
+    jsr PrintString
+
+    lda #<str_cg_mage
+    sta UI_TempPtr
+    lda #>str_cg_mage
+    sta UI_TempPtr+1
+    ldx #$06
+    ldy #$0E
+    jsr PrintString
+
+@show_controls:
+    lda #<str_cg_lr_change
+    sta UI_TempPtr
+    lda #>str_cg_lr_change
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$12
+    jsr PrintString
+
+    lda #<str_cg_a_confirm
+    sta UI_TempPtr
+    lda #>str_cg_a_confirm
+    sta UI_TempPtr+1
+    ldx #$04
+    ldy #$14
+    jsr PrintString
+
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
 ; RODATA — static strings
 ; ============================================================================
 
@@ -515,3 +776,41 @@ str_castle_a:
     .byte "A: NEXT QUEST", $00
 str_castle_b:
     .byte "B: LEAVE", $00
+
+; Chargen strings
+str_cg_lucky:
+    .byte "TYPE THY LUCKY NUMBER", $00
+str_cg_level:
+    .byte "LEVEL OF PLAY:", $00
+str_cg_updn:
+    .byte "UP/DN: CHANGE LEVEL", $00
+str_cg_hp:
+    .byte "HIT POINTS.....", $00
+str_cg_str:
+    .byte "STRENGTH.......", $00
+str_cg_dex:
+    .byte "DEXTERITY......", $00
+str_cg_sta:
+    .byte "STAMINA........", $00
+str_cg_wis:
+    .byte "WISDOM.........", $00
+str_cg_gold:
+    .byte "GOLD...........", $00
+str_cg_accept:
+    .byte "A: ACCEPT", $00
+str_cg_reroll:
+    .byte "B: REROLL", $00
+str_cg_class_q:
+    .byte "ART THOU FIGHTER OR MAGE?", $00
+str_cg_fighter:
+    .byte "  FIGHTER", $00
+str_cg_mage:
+    .byte "  MAGE", $00
+str_cg_fighter_sel:
+    .byte "> FIGHTER", $00
+str_cg_mage_sel:
+    .byte "> MAGE", $00
+str_cg_lr_change:
+    .byte "L/R: CHANGE", $00
+str_cg_a_confirm:
+    .byte "A: CONFIRM", $00

@@ -12,9 +12,9 @@
 ; Matches SNES hardware register layout: hi byte from $4219, lo from $4218
 ; ============================================================================
 
-.export JOY_B, JOY_Y, JOY_SELECT, JOY_START
-.export JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT
-.export JOY_A, JOY_X, JOY_L, JOY_R
+.export JOY_B : absolute, JOY_Y : absolute, JOY_SELECT : absolute, JOY_START : absolute
+.export JOY_UP : absolute, JOY_DOWN : absolute, JOY_LEFT : absolute, JOY_RIGHT : absolute
+.export JOY_A : absolute, JOY_X : absolute, JOY_L : absolute, JOY_R : absolute
 
 JOY_B       = $8000
 JOY_Y       = $4000

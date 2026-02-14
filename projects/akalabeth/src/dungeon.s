@@ -7,6 +7,7 @@
 
 .importzp JoyPress, GameState, MapDirty
 .importzp PlayerHP, PlayerFood, PlayerGold
+.import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_B
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
 
 ; ============================================================================
@@ -33,13 +34,6 @@ FACE_NORTH      = $00
 FACE_EAST       = $01
 FACE_SOUTH      = $02
 FACE_WEST       = $03
-
-; Joypad masks (high byte)
-JOY_UP          = $08       ; Forward
-JOY_DOWN        = $04       ; Turn around
-JOY_LEFT        = $02       ; Turn left
-JOY_RIGHT       = $01       ; Turn right
-JOY_B           = $40       ; B button (interact/retreat)
 
 ; Game states
 STATE_OVERWORLD = $01
@@ -281,8 +275,9 @@ DungeonGrid:    .res DUNG_SIZE
     SET_AXY8
     SET_XY16
 
-    lda JoyPress+1
-
+    ; 16-bit joypad test
+    SET_A16
+    lda JoyPress
     bit #JOY_UP
     bne @forward
     bit #JOY_LEFT
@@ -292,11 +287,16 @@ DungeonGrid:    .res DUNG_SIZE
     bit #JOY_DOWN
     bne @turn_around
     bit #JOY_B
-    bne :+
+    bne @do_stairs
+    SET_A8
     rts
-:   jmp @use_stairs
+
+@do_stairs:
+    SET_A8
+    jmp @use_stairs
 
 @turn_left:
+    SET_A8
     lda DungFacing
     dec a
     and #$03
@@ -304,6 +304,7 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_exit
 
 @turn_right:
+    SET_A8
     lda DungFacing
     inc a
     and #$03
@@ -311,6 +312,7 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_exit
 
 @turn_around:
+    SET_A8
     lda DungFacing
     clc
     adc #$02
@@ -319,6 +321,7 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_exit
 
 @forward:
+    SET_A8
     ; Calculate target cell based on facing
     lda DungPlayerY
     sta DG_TempA

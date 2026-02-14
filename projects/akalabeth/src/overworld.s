@@ -9,6 +9,7 @@
 
 .importzp JoyPress, GameState
 .importzp PlayerFood, PlayerHP
+.import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT
 .import DungeonInit
 
 ; ============================================================================
@@ -27,11 +28,6 @@ TILE_CASTLE     = $04
 TILE_DUNGEON    = $05
 TILE_FOREST     = $06
 TILE_PLAYER     = $07
-
-JOY_UP          = $08
-JOY_DOWN        = $04
-JOY_LEFT        = $02
-JOY_RIGHT       = $01
 
 STATE_OVERWORLD = $01
 STATE_DUNGEON   = $02
@@ -187,9 +183,9 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     SET_AXY8
     SET_XY16
 
-    lda JoyPress+1
-    sta OW_Offset            ; Save for bit tests
-
+    ; 16-bit joypad test
+    SET_A16
+    lda JoyPress
     bit #JOY_UP
     bne @move_up
     bit #JOY_DOWN
@@ -198,9 +194,11 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     bne @move_left
     bit #JOY_RIGHT
     bne @move_right
+    SET_A8
     rts
 
 @move_up:
+    SET_A8
     lda PlayerY
     beq @ret
     dec a
@@ -210,6 +208,7 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     jmp @try_move
 
 @move_down:
+    SET_A8
     lda PlayerY
     cmp #MAP_H - 1
     beq @ret
@@ -220,6 +219,7 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     jmp @try_move
 
 @move_left:
+    SET_A8
     lda PlayerX
     beq @ret
     lda PlayerY
@@ -230,6 +230,7 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     jmp @try_move
 
 @move_right:
+    SET_A8
     lda PlayerX
     cmp #MAP_W - 1
     beq @ret
@@ -313,14 +314,13 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
 .endproc
 
 ; ============================================================================
-; OverworldRender — build 32x32 BG1 tilemap from 20x20 map + player marker
-; Center 20x20 in 32x32 at offset (6,6).
-; Each tilemap entry = 2 bytes: low=tile#, high=attributes.
+; OverworldRender — 3x3 local view on BG1 (matches original game)
+; Shows tiles surrounding player in a 3x3 grid of 8x8-tile cells.
+; Player crosshair stamped at center cell.
 ; ============================================================================
 .proc OverworldRender
+    ; --- Clear tilemap to black (tile 0) ---
     SET_AXY16
-
-    ; Clear tilemap to tile 0
     ldx #$0000
     lda #$0000
 @clear:
@@ -330,101 +330,122 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     cpx #2048
     bne @clear
 
-    ; Now fill in the 20x20 map region
-    ; For each map cell (row, col): tilemap byte offset = ((row+6)*32 + (col+6)) * 2
-    SET_AXY8
-    SET_XY16
-    stz OW_TempA            ; row counter (0-19)
+    ; --- Draw 9 cells ---
+    SET_A8                  ; A=8-bit, XY still 16-bit
+    lda #$00
+    sta OW_TempA            ; cell counter (0-8)
 
-@row_loop:
-    stz OW_TempB            ; col counter (0-19)
+@cell_loop:
+    SET_XY8
+    ldy OW_TempA            ; Y = cell index
 
-@col_loop:
-    ; --- Read map tile ---
-    ; map offset = row * 20 + col
-    lda OW_TempA
-    pha                     ; Save row on stack
-    jsr CalcMapOffset       ; X = row*20 + col (uses OW_TempA and OW_TempB)
-    lda OverworldMap,x      ; A = tile type
-    pha                     ; Save tile on stack
-
-    ; --- Calculate tilemap destination ---
-    ; dest word index = (row+6)*32 + (col+6)
-    ; dest byte offset = word_index * 2
-    lda OW_TempA            ; row
+    ; mapY = PlayerY + CellDY[cell]
+    lda CellDY,y
     clc
-    adc #6
-    sta OW_Offset
+    adc PlayerY
+    cmp #MAP_H
+    bcs @oob
+    pha                     ; push mapY (8-bit)
+
+    ; mapX = PlayerX + CellDX[cell]
+    lda CellDX,y
+    clc
+    adc PlayerX
+    cmp #MAP_W
+    bcs @oob_pop
+
+    ; --- In bounds: compute map offset = mapY*20 + mapX ---
+    sta OW_TempB            ; mapX
+    pla                     ; A = mapY
     stz OW_Offset+1
+    sta OW_Offset
     SET_A16
     lda OW_Offset
     asl
     asl
+    sta OW_Offset           ; mapY * 4
     asl
-    asl
-    asl                     ; (row+6) * 32
+    asl                     ; mapY * 16
+    clc
+    adc OW_Offset           ; mapY * 20
     sta OW_Offset
     SET_A8
-    lda OW_TempB            ; col
-    clc
-    adc #6
+    lda OW_TempB
     SET_A16
     and #$00FF
     clc
-    adc OW_Offset            ; + (col+6)
-    asl                     ; * 2 = byte offset
+    adc OW_Offset           ; mapY*20 + mapX
+    SET_XY16
     tax
-
-    ; --- Write tilemap entry ---
     SET_A8
-    pla                     ; Restore tile type
-    sta TilemapBuffer,x     ; Low byte = tile number
-    lda #$00                ; High byte = palette 0, no flip
-    sta TilemapBuffer+1,x
+    lda OverworldMap,x
+    jmp @got_tile
 
-    ; --- Restore row, advance col ---
-    pla                     ; Restore row counter
-    sta OW_TempA
+@oob_pop:
+    pla                     ; discard mapY
+@oob:
+    lda #TILE_MOUNTAIN      ; border = mountain
 
-    inc OW_TempB
-    lda OW_TempB
-    cmp #MAP_W
-    bne @col_loop
+@got_tile:
+    ; A = tile type
+    pha                     ; save tile
 
+    ; --- Get tilemap offset from CellOfs word table ---
+    lda OW_TempA            ; cell index
+    asl                     ; * 2 for word index
+    SET_XY16
+    tay                     ; Y = cell*2 (zero-extended to 16-bit)
+    SET_A16
+    lda CellOfs,y           ; 16-bit tilemap byte offset
+    tax                     ; X = tilemap offset
+    SET_A8
+
+    pla                     ; A = tile type
+
+    ; --- Write 2x2 tile block ---
+    sta TilemapBuffer,x
+    stz TilemapBuffer+1,x
+    sta TilemapBuffer+2,x
+    stz TilemapBuffer+3,x
+    sta TilemapBuffer+64,x  ; next row = +32 words = +64 bytes
+    stz TilemapBuffer+65,x
+    sta TilemapBuffer+66,x
+    stz TilemapBuffer+67,x
+
+    ; --- Next cell ---
     inc OW_TempA
     lda OW_TempA
-    cmp #MAP_H
-    bne @row_loop
+    cmp #$09
+    bcc @cell_loop
 
-    ; --- Stamp player marker ---
-    lda PlayerY
-    clc
-    adc #6
-    sta OW_Offset
-    stz OW_Offset+1
-    SET_A16
-    lda OW_Offset
-    asl
-    asl
-    asl
-    asl
-    asl                     ; (PlayerY+6) * 32
-    sta OW_Offset
-    SET_A8
-    lda PlayerX
-    clc
-    adc #6
-    SET_A16
-    and #$00FF
-    clc
-    adc OW_Offset
-    asl
-    tax
-    SET_A8
+    ; --- Player crosshair at center cell ---
+    SET_XY16
+    ldx #734                ; cell 4 tilemap offset
     lda #TILE_PLAYER
     sta TilemapBuffer,x
-    lda #$00
-    sta TilemapBuffer+1,x
+    stz TilemapBuffer+1,x
+    sta TilemapBuffer+2,x
+    stz TilemapBuffer+3,x
+    sta TilemapBuffer+64,x
+    stz TilemapBuffer+65,x
+    sta TilemapBuffer+66,x
+    stz TilemapBuffer+67,x
 
     rts
 .endproc
+
+; ============================================================================
+; RODATA
+; ============================================================================
+
+.segment "RODATA"
+
+; 3x3 cell layout: dy/dx offsets from player position
+CellDY: .byte $FF, $FF, $FF, $00, $00, $00, $01, $01, $01
+CellDX: .byte $FF, $00, $01, $FF, $00, $01, $FF, $00, $01
+
+; Tilemap byte offsets for center of each 8x8-tile cell
+; Cell grid starts at tilemap (row=0, col=4), each cell = 8x8 tiles
+; Center of cell (cy,cx) at row=cy*8+3, col=4+cx*8+3 = cx*8+7
+; Byte offset = (row*32 + col) * 2
+CellOfs: .word 206, 222, 238, 718, 734, 750, 1230, 1246, 1262
