@@ -14,9 +14,9 @@
 ; Constants
 ; ============================================================================
 
-DUNG_W          = 10
-DUNG_H          = 10
-DUNG_SIZE       = DUNG_W * DUNG_H   ; 100 bytes per floor
+DUNG_W          = 11
+DUNG_H          = 11
+DUNG_SIZE       = DUNG_W * DUNG_H   ; 121 bytes per floor
 MAX_FLOORS      = 10
 
 ; Dungeon tile types
@@ -97,20 +97,22 @@ DungeonGrid:    .res DUNG_SIZE
 ; Returns X (16-bit). Requires 8-bit A, 16-bit XY.
 ; ============================================================================
 .proc CalcDungOffset
-    ; offset = row * 10 + col
-    ; row * 10 = row * 8 + row * 2
+    ; offset = row * 11 + col
+    ; row * 11 = row * 5 * 2 + row
     sta DG_TempA
     stz DG_Offset+1
     sta DG_Offset
     SET_A16
     lda DG_Offset
     and #$00FF
-    asl                     ; *2
-    sta DG_Offset
+    sta DG_Offset            ; row
     asl
-    asl                     ; *8
+    asl                     ; row*4
     clc
-    adc DG_Offset            ; *10
+    adc DG_Offset            ; row*5
+    asl                     ; row*10
+    clc
+    adc DG_Offset            ; row*11
     sta DG_Offset
     SET_A8
     lda DG_TempB
@@ -150,8 +152,9 @@ DungeonGrid:    .res DUNG_SIZE
 .endproc
 
 ; ============================================================================
-; GenerateFloor — procedural generation seeded by floor number
-; Perimeter walls, carve interior, place features
+; GenerateFloor — grid-based dungeon matching original Akalabeth algorithm
+; 11x11 grid: perimeter walls, even rows/cols form wall grid creating rooms,
+; passage cells randomly opened as floor/door/trap/chest
 ; ============================================================================
 .proc GenerateFloor
     SET_AXY8
@@ -166,104 +169,163 @@ DungeonGrid:    .res DUNG_SIZE
     eor #$5A
     sta RngSeed+1
 
-    ; Fill with walls
+    ; --- Fill all with floor ---
     ldx #$0000
-    lda #DTILE_WALL
+    lda #DTILE_FLOOR
 @fill:
     sta DungeonGrid,x
     inx
     cpx #DUNG_SIZE
     bne @fill
 
-    ; Carve interior (rows 1-8, cols 1-8)
-    lda #$01
-    sta DG_TempA            ; row
-@row:
-    lda #$01
-    sta DG_TempB            ; col
-@col:
-    jsr PrngNext
-    and #$03
-    beq @keep_wall          ; 25% chance to keep wall
+    ; --- Perimeter walls (row 0, row 10, col 0, col 10) ---
+    ldx #$0000
+@border_tb:
+    lda #DTILE_WALL
+    sta DungeonGrid,x                      ; Row 0
+    sta DungeonGrid + 10 * DUNG_W,x        ; Row 10
+    inx
+    cpx #DUNG_W
+    bne @border_tb
 
-    ; Carve floor
-    lda DG_TempA            ; row
-    jsr CalcDungOffset      ; X = row*10 + col
-    lda #DTILE_FLOOR
+    ldx #$0000
+@border_lr:
+    lda #DTILE_WALL
+    sta DungeonGrid,x                      ; Col 0
+    sta DungeonGrid + (DUNG_W - 1),x       ; Col 10
+    SET_A16
+    txa
+    clc
+    adc #DUNG_W
+    tax
+    SET_A8
+    cpx #DUNG_SIZE
+    bcc @border_lr
+
+    ; --- Build room grid: single pass over rows 1-9, cols 1-9 ---
+    ; Even×Even = wall intersection (always wall)
+    ; Even×Odd or Odd×Even = passage (randomly classify)
+    ; Odd×Odd = room interior (stays floor)
+    lda #$01
+    sta DG_TempA                ; row
+@gen_row:
+    lda #$01
+    sta DG_TempB                ; col
+@gen_col:
+    ; Save row/col on stack (CalcDungOffset clobbers them)
+    lda DG_TempA
+    pha
+    lda DG_TempB
+    pha
+
+    ; Check even/odd pattern
+    lda DG_TempA
+    and #$01
+    sta DG_Offset               ; 0=even row, 1=odd row
+    lda DG_TempB
+    and #$01
+    eor DG_Offset               ; 0=same parity, 1=different
+    beq @same_parity
+
+    ; Different parity = passage cell: randomly classify
+    lda DG_TempA
+    jsr CalcDungOffset
+    jsr PrngNext
+    jsr ClassifyWallCell
+    sta DungeonGrid,x
+    jmp @gen_next
+
+@same_parity:
+    lda DG_TempA
+    and #$01
+    bne @gen_next               ; Both odd = room, leave as floor
+
+    ; Both even = grid intersection, always wall
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_WALL
     sta DungeonGrid,x
 
-@keep_wall:
+@gen_next:
+    ; Restore row/col from stack
+    pla
+    sta DG_TempB
+    pla
+    sta DG_TempA
+
     inc DG_TempB
     lda DG_TempB
-    cmp #DUNG_W - 1         ; cols 1..8
-    bne @col
+    cmp #10                     ; cols 1-9
+    bne @gen_col
 
     inc DG_TempA
     lda DG_TempA
-    cmp #DUNG_H - 1         ; rows 1..8
-    bne @row
+    cmp #10                     ; rows 1-9
+    bne @gen_row
 
-    ; --- Place stairs up at (1,1) ---
-    lda #DTILE_STAIRS_UP
-    sta DungeonGrid + 1 * DUNG_W + 1
-    ; Also ensure path around stairs is open
-    lda #DTILE_FLOOR
-    sta DungeonGrid + 1 * DUNG_W + 2
-    sta DungeonGrid + 2 * DUNG_W + 1
-
-    ; --- Place stairs down ---
-    ; Even floors: stairs down at (8,8). Odd: (8,2).
+    ; --- Place stairs (matching original layout) ---
+    ; Even DungFloor: down at (3,7), up at (7,3)
+    ; Odd DungFloor:  down at (7,3), up at (3,7)
+    ; Floor 0 special: up at (1,1), clear (7,3)
     lda DungFloor
     and #$01
-    bne @odd_stairs
+    bne @odd_floor
     lda #DTILE_STAIRS_DN
-    sta DungeonGrid + 8 * DUNG_W + 8
-    lda #DTILE_FLOOR
-    sta DungeonGrid + 7 * DUNG_W + 8
-    sta DungeonGrid + 8 * DUNG_W + 7
-    jmp @place_features
-@odd_stairs:
+    sta DungeonGrid + 3 * DUNG_W + 7
+    lda #DTILE_STAIRS_UP
+    sta DungeonGrid + 7 * DUNG_W + 3
+    jmp @check_floor0
+@odd_floor:
     lda #DTILE_STAIRS_DN
-    sta DungeonGrid + 8 * DUNG_W + 2
+    sta DungeonGrid + 7 * DUNG_W + 3
+    lda #DTILE_STAIRS_UP
+    sta DungeonGrid + 3 * DUNG_W + 7
+@check_floor0:
+    lda DungFloor
+    bne @done
+    lda #DTILE_STAIRS_UP
+    sta DungeonGrid + 1 * DUNG_W + 1
     lda #DTILE_FLOOR
-    sta DungeonGrid + 7 * DUNG_W + 2
-    sta DungeonGrid + 8 * DUNG_W + 3
+    sta DungeonGrid + 7 * DUNG_W + 3
+@done:
+    ; Ensure (2,1) is open for entrance access
+    lda #DTILE_FLOOR
+    sta DungeonGrid + 2 * DUNG_W + 1
 
-@place_features:
-    ; Scatter traps, chests, and open some doors
-    ldy #$00                ; feature counter
-@feat_loop:
-    jsr PrngNext
-    and #$7F                ; 0-127 → offset into grid
-    cmp #DUNG_SIZE
-    bcs @feat_skip          ; Out of range
+    rts
+.endproc
 
-    tax
-    lda DungeonGrid,x
-    cmp #DTILE_FLOOR
-    bne @feat_skip          ; Only place on floor tiles
-
-    jsr PrngNext
-    and #$07                ; 0-7
-    cmp #$03
-    bcc @place_trap         ; 0-2: trap (37%)
-    cmp #$05
-    bcc @place_chest        ; 3-4: chest (25%)
-    jmp @feat_skip          ; 5-7: leave as floor
-
-@place_trap:
+; ============================================================================
+; ClassifyWallCell — convert RNG byte in A to a dungeon cell type
+; Input: A = random byte (0-255)
+; Output: A = DTILE_* value
+; ============================================================================
+.proc ClassifyWallCell
+    cmp #77                 ; 0-76 (30%): keep wall
+    bcc @wall
+    cmp #167                ; 77-166 (35%): open floor
+    bcc @floor
+    cmp #218                ; 167-217 (20%): door
+    bcc @door
+    cmp #231                ; 218-230 (5%): trap
+    bcc @trap
+    cmp #244                ; 231-243 (5%): chest
+    bcc @chest
+    ; 244-255: wall
+@wall:
+    lda #DTILE_WALL
+    rts
+@floor:
+    lda #DTILE_FLOOR
+    rts
+@door:
+    lda #DTILE_DOOR
+    rts
+@trap:
     lda #DTILE_TRAP
-    sta DungeonGrid,x
-    jmp @feat_skip
-@place_chest:
+    rts
+@chest:
     lda #DTILE_CHEST
-    sta DungeonGrid,x
-
-@feat_skip:
-    iny
-    cpy #12                 ; Place up to 12 features
-    bne @feat_loop
-
     rts
 .endproc
 
@@ -418,24 +480,16 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_exit
 
 @hit_trap:
-    ; Damage player: 5-20 HP
+    ; Original: trap drops player to next dungeon level
     lda #DTILE_FLOOR
     sta DungeonGrid,x       ; Remove trap
-    jsr PrngNext
-    and #$0F                ; 0-15
-    clc
-    adc #$05                ; 5-20
-    sta DG_Offset
-    stz DG_Offset+1
-    SET_A16
-    lda PlayerHP
-    sec
-    sbc DG_Offset
-    bcs :+
-    lda #$0000
-:   sta PlayerHP
-    SET_A8
-    jmp @render_exit
+    lda DungFloor
+    cmp #MAX_FLOORS - 1
+    bne :+
+    jmp @render_exit        ; Can't go deeper
+:   inc DungFloor
+    jsr GenerateFloor
+    jmp @place_at_up_stairs
 
 @open_chest:
     lda #DTILE_FLOOR
@@ -461,20 +515,8 @@ DungeonGrid:    .res DUNG_SIZE
     beq @exit_dungeon       ; Floor 0 stairs up = exit
     dec DungFloor
     jsr GenerateFloor
-    ; Place player at stairs down of previous floor
-    lda DungFloor
-    and #$01
-    bne @up_odd
-    lda #$08
-    sta DungPlayerX
-    sta DungPlayerY
-    jmp @render_exit
-@up_odd:
-    lda #$02
-    sta DungPlayerX
-    lda #$08
-    sta DungPlayerY
-    jmp @render_exit
+    ; Place player at down-stairs of new (upper) floor
+    jmp @place_at_dn_stairs
 
 @go_down:
     lda DungFloor
@@ -482,9 +524,46 @@ DungeonGrid:    .res DUNG_SIZE
     beq @render_exit        ; Can't go deeper
     inc DungFloor
     jsr GenerateFloor
-    ; Place at stairs up
+    ; Place player at up-stairs of new (lower) floor
+    jmp @place_at_up_stairs
+
+@place_at_up_stairs:
+    ; Even floor: up at (7,3). Odd: up at (3,7). Floor 0: up at (1,1).
+    lda DungFloor
+    beq @up_floor0
+    and #$01
+    bne @up_odd
+    lda #$03
+    sta DungPlayerX
+    lda #$07
+    sta DungPlayerY
+    jmp @render_exit
+@up_odd:
+    lda #$07
+    sta DungPlayerX
+    lda #$03
+    sta DungPlayerY
+    jmp @render_exit
+@up_floor0:
     lda #$01
     sta DungPlayerX
+    sta DungPlayerY
+    jmp @render_exit
+
+@place_at_dn_stairs:
+    ; Even floor: down at (3,7). Odd: down at (7,3).
+    lda DungFloor
+    and #$01
+    bne @dn_odd
+    lda #$07
+    sta DungPlayerX
+    lda #$03
+    sta DungPlayerY
+    jmp @render_exit
+@dn_odd:
+    lda #$03
+    sta DungPlayerX
+    lda #$07
     sta DungPlayerY
     jmp @render_exit
 
@@ -511,10 +590,12 @@ DungeonGrid:    .res DUNG_SIZE
     jsr CalcDungOffset
     lda DungeonGrid,x
     cmp #DTILE_STAIRS_UP
-    beq @go_up
-    cmp #DTILE_STAIRS_DN
-    beq @go_down
-    rts
+    bne :+
+    jmp @go_up
+:   cmp #DTILE_STAIRS_DN
+    bne :+
+    jmp @go_down
+:   rts
 .endproc
 
 ; ============================================================================
@@ -537,48 +618,6 @@ DungeonGrid:    .res DUNG_SIZE
 
     SET_AXY8
     SET_XY16
-
-    ; Draw floor pattern on bottom half (rows 16-27)
-    lda #16
-    sta DG_TempA            ; Start row
-@floor_row:
-    lda #4                  ; Left edge of corridor
-    sta DG_TempB
-@floor_col:
-    ; Tilemap byte offset = (row*32 + col) * 2
-    lda DG_TempA
-    stz DG_Offset+1
-    sta DG_Offset
-    SET_A16
-    lda DG_Offset
-    asl
-    asl
-    asl
-    asl
-    asl                     ; *32
-    sta DG_Offset
-    SET_A8
-    lda DG_TempB
-    SET_A16
-    and #$00FF
-    clc
-    adc DG_Offset
-    asl
-    tax
-    SET_A8
-    lda #DGTILE_FLOOR       ; Floor pattern tile
-    sta TilemapBuffer,x
-    stz TilemapBuffer+1,x
-
-    inc DG_TempB
-    lda DG_TempB
-    cmp #28                 ; Right edge
-    bne @floor_col
-
-    inc DG_TempA
-    lda DG_TempA
-    cmp #28
-    bne @floor_row
 
     ; --- Draw walls based on what's ahead ---
     ; Check depths 1-4 in facing direction
@@ -825,77 +864,146 @@ DungeonGrid:    .res DUNG_SIZE
     rts
 .endproc
 
-; DrawBackWallClose: full-width back wall (depth 1)
+; DrawBackWallClose: wireframe outline (depth 1)
 ; Rows 4-23, cols 2-29
 .proc DrawBackWallClose
     SET_A8
     SET_XY16
-    ldy #4                  ; Start row
-@row:
-    ldx #2                  ; Start col
-@col:
-    lda #DGTILE_WALL
+    ; Top edge: row 4, cols 2-29
+    ldy #4
+    ldx #2
+@top:
+    lda #DGTILE_WALLHI
     jsr WriteTile
     inx
     cpx #30
-    bne @col
+    bne @top
+    ; Bottom edge: row 23, cols 2-29
+    ldy #23
+    ldx #2
+@bot:
+    lda #DGTILE_WALLHI
+    jsr WriteTile
+    inx
+    cpx #30
+    bne @bot
+    ; Left edge: rows 5-22, col 2
+    ldy #5
+@left:
+    ldx #2
+    lda #DGTILE_WALLHI
+    jsr WriteTile
     iny
-    cpy #24
-    bne @row
+    cpy #23
+    bne @left
+    ; Right edge: rows 5-22, col 29
+    ldy #5
+@right:
+    ldx #29
+    lda #DGTILE_WALLHI
+    jsr WriteTile
+    iny
+    cpy #23
+    bne @right
     rts
 .endproc
 
-; DrawBackWallMid: medium back wall (depth 2)
+; DrawBackWallMid: wireframe outline (depth 2)
 ; Rows 6-21, cols 6-25
 .proc DrawBackWallMid
     SET_A8
     SET_XY16
+    ; Top edge
     ldy #6
-@row:
     ldx #6
-@col:
+@top:
     lda #DGTILE_WALLHI
     jsr WriteTile
     inx
     cpx #26
-    bne @col
+    bne @top
+    ; Bottom edge
+    ldy #21
+    ldx #6
+@bot:
+    lda #DGTILE_WALLHI
+    jsr WriteTile
+    inx
+    cpx #26
+    bne @bot
+    ; Left edge
+    ldy #7
+@left:
+    ldx #6
+    lda #DGTILE_WALLHI
+    jsr WriteTile
     iny
-    cpy #22
-    bne @row
+    cpy #21
+    bne @left
+    ; Right edge
+    ldy #7
+@right:
+    ldx #25
+    lda #DGTILE_WALLHI
+    jsr WriteTile
+    iny
+    cpy #21
+    bne @right
     rts
 .endproc
 
-; DrawBackWallFar: small back wall (depth 3)
+; DrawBackWallFar: wireframe outline (depth 3)
 ; Rows 8-19, cols 10-21
 .proc DrawBackWallFar
     SET_A8
     SET_XY16
+    ; Top edge
     ldy #8
-@row:
     ldx #10
-@col:
+@top:
     lda #DGTILE_WALLHI
     jsr WriteTile
     inx
     cpx #22
-    bne @col
+    bne @top
+    ; Bottom edge
+    ldy #19
+    ldx #10
+@bot:
+    lda #DGTILE_WALLHI
+    jsr WriteTile
+    inx
+    cpx #22
+    bne @bot
+    ; Left edge
+    ldy #9
+@left:
+    ldx #10
+    lda #DGTILE_WALLHI
+    jsr WriteTile
     iny
-    cpy #20
-    bne @row
+    cpy #19
+    bne @left
+    ; Right edge
+    ldy #9
+@right:
+    ldx #21
+    lda #DGTILE_WALLHI
+    jsr WriteTile
+    iny
+    cpy #19
+    bne @right
     rts
 .endproc
 
-; DrawLeftWallD1: left wall strip at depth 1 (cols 2-3, rows 4-23)
+; DrawLeftWallD1: left wall line at depth 1 (col 2, rows 4-23)
 .proc DrawLeftWallD1
     SET_A8
     SET_XY16
     ldy #4
 @row:
     ldx #2
-    lda #DGTILE_WALL
-    jsr WriteTile
-    ldx #3
-    lda #DGTILE_WALL
+    lda #DGTILE_WALLHI
     jsr WriteTile
     iny
     cpy #24
@@ -903,17 +1011,14 @@ DungeonGrid:    .res DUNG_SIZE
     rts
 .endproc
 
-; DrawRightWallD1: right wall strip at depth 1 (cols 28-29, rows 4-23)
+; DrawRightWallD1: right wall line at depth 1 (col 29, rows 4-23)
 .proc DrawRightWallD1
     SET_A8
     SET_XY16
     ldy #4
 @row:
-    ldx #28
-    lda #DGTILE_WALL
-    jsr WriteTile
     ldx #29
-    lda #DGTILE_WALL
+    lda #DGTILE_WALLHI
     jsr WriteTile
     iny
     cpy #24
@@ -921,7 +1026,7 @@ DungeonGrid:    .res DUNG_SIZE
     rts
 .endproc
 
-; DrawLeftWallD2: left wall at depth 2 (cols 6-7, rows 6-21)
+; DrawLeftWallD2: left wall line at depth 2 (col 6, rows 6-21)
 .proc DrawLeftWallD2
     SET_A8
     SET_XY16
@@ -930,24 +1035,18 @@ DungeonGrid:    .res DUNG_SIZE
     ldx #6
     lda #DGTILE_WALLHI
     jsr WriteTile
-    ldx #7
-    lda #DGTILE_WALLHI
-    jsr WriteTile
     iny
     cpy #22
     bne @row
     rts
 .endproc
 
-; DrawRightWallD2: right wall at depth 2 (cols 24-25, rows 6-21)
+; DrawRightWallD2: right wall line at depth 2 (col 25, rows 6-21)
 .proc DrawRightWallD2
     SET_A8
     SET_XY16
     ldy #6
 @row:
-    ldx #24
-    lda #DGTILE_WALLHI
-    jsr WriteTile
     ldx #25
     lda #DGTILE_WALLHI
     jsr WriteTile
