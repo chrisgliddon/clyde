@@ -15,6 +15,7 @@
 .import CombatInit, CombatUpdate, RollStats, SeedPrng
 .import UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .import UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
+.import UiShowGameOver, UiShowVictory
 .import GfxUploadOverworld, GfxUploadFont
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
@@ -539,15 +540,14 @@ STATE_CHARGEN_CLASS = $09
     jmp @loop
 
 @victory:
-    lda #STATE_TITLE
+    lda #STATE_GAMEOVER
     sta GameState
-    jsr UiShowTitle
-    lda #$01
-    sta StatsDirty
+    jsr UiShowVictory
     jmp @loop
 
 ; --- Game Over ---
 @do_gameover:
+    jsr UiShowGameOver
     SET_A16
     lda JoyPress
     bit #JOY_START

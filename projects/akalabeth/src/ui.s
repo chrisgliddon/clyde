@@ -5,6 +5,7 @@
 
 .export UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .export UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
+.export UiShowGameOver, UiShowVictory
 .export Bg3Tilemap
 .exportzp StatsDirty
 
@@ -534,24 +535,103 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     SET_A8
     jsr UiClearBg3
 
+    ; Title
     lda #<str_castle_title
     sta UI_TempPtr
     lda #>str_castle_title
     sta UI_TempPtr+1
     ldx #$04
-    ldy #$04
+    ldy #$02
     jsr PrintString
 
     ; Check if quest completed
     lda PlayerQuest
-    bmi @show_complete
-
-    ; Show current quest: "SEEK THE <monster>"
-    lda #<str_seek
+    bpl :+
+    jmp @show_complete
+:
+    ; Active quest: "THY TASK: KILL A(N)"
+    lda #<str_thy_task
     sta UI_TempPtr
-    lda #>str_seek
+    lda #>str_thy_task
     sta UI_TempPtr+1
-    ldx #$04
+    ldx #$02
+    ldy #$06
+    jsr PrintString
+
+    ; Show monster name at row 8
+    lda PlayerQuest
+    and #$0F
+    cmp #$00
+    bne :+
+    lda #<str_mn_skeleton
+    sta UI_TempPtr
+    lda #>str_mn_skeleton
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$01
+    bne :+
+    lda #<str_mn_thief
+    sta UI_TempPtr
+    lda #>str_mn_thief
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$02
+    bne :+
+    lda #<str_mn_rat
+    sta UI_TempPtr
+    lda #>str_mn_rat
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$03
+    bne :+
+    lda #<str_mn_orc
+    sta UI_TempPtr
+    lda #>str_mn_orc
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$04
+    bne :+
+    lda #<str_mn_viper
+    sta UI_TempPtr
+    lda #>str_mn_viper
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$05
+    bne :+
+    lda #<str_mn_carrion
+    sta UI_TempPtr
+    lda #>str_mn_carrion
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$06
+    bne :+
+    lda #<str_mn_gremlin
+    sta UI_TempPtr
+    lda #>str_mn_gremlin
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$07
+    bne :+
+    lda #<str_mn_mimic
+    sta UI_TempPtr
+    lda #>str_mn_mimic
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   cmp #$08
+    bne :+
+    lda #<str_mn_daemon
+    sta UI_TempPtr
+    lda #>str_mn_daemon
+    sta UI_TempPtr+1
+    jmp @print_mon
+:   ; Default: Balrog
+    lda #<str_mn_balrog
+    sta UI_TempPtr
+    lda #>str_mn_balrog
+    sta UI_TempPtr+1
+
+@print_mon:
+    ldx #$06
     ldy #$08
     jsr PrintString
 
@@ -566,12 +646,13 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     jmp @done_castle
 
 @show_complete:
+    ; "THOU HAST ACCOMPLISHED THY QUEST!"
     lda #<str_quest_done
     sta UI_TempPtr
     lda #>str_quest_done
     sta UI_TempPtr+1
-    ldx #$04
-    ldy #$08
+    ldx #$02
+    ldy #$06
     jsr PrintString
 
     lda #<str_castle_a
@@ -579,10 +660,90 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     lda #>str_castle_a
     sta UI_TempPtr+1
     ldx #$04
-    ldy #$0C
+    ldy #$0A
     jsr PrintString
 
 @done_castle:
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
+; UiShowGameOver — mourning screen
+; ============================================================================
+.proc UiShowGameOver
+    SET_A8
+    jsr UiClearBg3
+
+    lda #<str_go_mourn
+    sta UI_TempPtr
+    lda #>str_go_mourn
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$06
+    jsr PrintString
+
+    lda #<str_go_line2
+    sta UI_TempPtr
+    lda #>str_go_line2
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$08
+    jsr PrintString
+
+    lda #<str_go_restart
+    sta UI_TempPtr
+    lda #>str_go_restart
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$0C
+    jsr PrintString
+
+    lda #$01
+    sta StatsDirty
+    rts
+.endproc
+
+; ============================================================================
+; UiShowVictory — knighthood screen
+; ============================================================================
+.proc UiShowVictory
+    SET_A8
+    jsr UiClearBg3
+
+    lda #<str_vic_line1
+    sta UI_TempPtr
+    lda #>str_vic_line1
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$04
+    jsr PrintString
+
+    lda #<str_vic_line2
+    sta UI_TempPtr
+    lda #>str_vic_line2
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$06
+    jsr PrintString
+
+    lda #<str_vic_line3
+    sta UI_TempPtr
+    lda #>str_vic_line3
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$08
+    jsr PrintString
+
+    lda #<str_go_restart
+    sta UI_TempPtr
+    lda #>str_go_restart
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$0E
+    jsr PrintString
+
     lda #$01
     sta StatsDirty
     rts
@@ -887,14 +1048,52 @@ str_cursor:
 
 str_castle_title:
     .byte "--- LORD BRITISH ---", $00
-str_seek:
-    .byte "SEEK AND DESTROY!", $00
+str_thy_task:
+    .byte "THY TASK: KILL A(N)", $00
 str_quest_done:
-    .byte "QUEST COMPLETE!", $00
+    .byte "THOU HAST ACCOMPLISHED", $00
 str_castle_a:
-    .byte "A: NEXT QUEST", $00
+    .byte "A: ACCEPT NEXT QUEST", $00
 str_castle_b:
     .byte "B: LEAVE", $00
+
+; Monster names (null-terminated)
+str_mn_skeleton:
+    .byte "SKELETON", $00
+str_mn_thief:
+    .byte "THIEF", $00
+str_mn_rat:
+    .byte "GIANT RAT", $00
+str_mn_orc:
+    .byte "ORC", $00
+str_mn_viper:
+    .byte "VIPER", $00
+str_mn_carrion:
+    .byte "CARRION CRAWLER", $00
+str_mn_gremlin:
+    .byte "GREMLIN", $00
+str_mn_mimic:
+    .byte "MIMIC", $00
+str_mn_daemon:
+    .byte "DAEMON", $00
+str_mn_balrog:
+    .byte "BALROG", $00
+
+; Game over strings
+str_go_mourn:
+    .byte "WE MOURN THE PASSING", $00
+str_go_line2:
+    .byte "OF THE ADVENTURER", $00
+str_go_restart:
+    .byte "PRESS START TO RESTART", $00
+
+; Victory strings
+str_vic_line1:
+    .byte "THOU HAST PROVED", $00
+str_vic_line2:
+    .byte "THYSELF WORTHY OF", $00
+str_vic_line3:
+    .byte "KNIGHTHOOD!", $00
 
 ; Chargen strings
 str_cg_lucky:

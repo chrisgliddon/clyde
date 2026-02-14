@@ -46,6 +46,7 @@ CSTATE_LOST     = $03       ; Defeat
 ; Game states (must match main.s)
 STATE_OVERWORLD = $01
 STATE_DUNGEON   = $02
+STATE_GAMEOVER  = $06
 
 ; ============================================================================
 ; Zero page
@@ -453,14 +454,12 @@ MonsterNames:
     rts
 
 @defeat:
-    ; TODO: game over screen
-    ; For now, just return to overworld with reset stats
+    ; Transition to game over state
     SET_A16
     lda JoyPress
     SET_A8
     beq @wait_defeat
-    jsr CombatInit
-    lda #STATE_OVERWORLD
+    lda #STATE_GAMEOVER
     sta GameState
     lda #$01
     sta MapDirty
