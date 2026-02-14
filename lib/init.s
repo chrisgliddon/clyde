@@ -10,20 +10,10 @@
 
 ; ============================================================================
 ; InitSNES — SNES hardware initialization
-; Call this from your ResetHandler before doing anything else.
+; Caller must: sei, switch to native mode, set S=$1FFF, set D=$0000
 ; Clobbers: all registers
 ; ============================================================================
 .proc InitSNES
-    sei                     ; Disable interrupts
-    clc
-    xce                     ; Switch to native (65816) mode
-
-    SET_AXY16
-    ldx #$1FFF             ; Stack at top of low RAM
-    txs
-    lda #$0000
-    tcd                     ; Direct page = $0000
-
     SET_AXY8
 
     ; --- Force blank (display off) ---

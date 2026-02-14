@@ -62,7 +62,16 @@ JOY_B           = $40       ; B button
 .segment "CODE"
 
 .proc ResetHandler
-    jsr InitSNES
+    sei
+    clc
+    xce                     ; Switch to native 65816 mode
+    SET_AXY16
+    ldx #$1FFF
+    txs                     ; Stack at top of low RAM
+    lda #$0000
+    tcd                     ; Direct page = $0000
+    SET_AXY8
+    jsr InitSNES            ; S=$1FFF, return addr at $1FFE-$1FFF (survives RAM clear)
     jmp Main
 .endproc
 

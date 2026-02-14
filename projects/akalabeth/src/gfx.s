@@ -88,8 +88,8 @@ DAS1H       = $4316
     ; BG1 char base = VRAM $0000 (nibble 0), BG2 char base = 0
     stz BG12NBA
 
-    ; BG3 char base = VRAM $1000 (nibble 2 → value $02), BG4 = 0
-    lda #$02
+    ; BG3 char base = word $1000 (nibble 1 → value $01), BG4 = 0
+    lda #$01
     sta BG34NBA
 
     ; Enable BG1 + BG3 on main screen

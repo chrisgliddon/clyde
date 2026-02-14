@@ -77,7 +77,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; Clobbers: A, X, Y
 ; ============================================================================
 .proc PrintString
-    SET_A8
+    SET_AXY8
 
     ; Save col and row
     stx UI_TempA            ; col
@@ -102,6 +102,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     clc
     adc UI_DivQuot          ; word index
     asl                     ; * 2 = byte offset
+    SET_XY16
     tax                     ; X = offset into Bg3Tilemap
 
     SET_A8
@@ -130,6 +131,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; Input: UI_DivQuot = 16-bit value, X = col, Y = row
 ; ============================================================================
 .proc PrintNum16
+    SET_XY8
     stx UI_TempA            ; Save col
     sty UI_TempB            ; Save row
     SET_A8
@@ -317,7 +319,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     sta BGMODE
     lda #$30                ; BG3 tilemap at $3000
     sta BG3SC
-    lda #$02                ; BG3 chars at $1000
+    lda #$01                ; BG3 char base = word $1000
     sta BG34NBA
     lda #$04                ; Enable BG3 only
     sta TM
