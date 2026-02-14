@@ -6,7 +6,7 @@ CFG      = config/lorom128k.cfg
 LIBDIR   = ../../lib
 
 # Source files (order matters for linking)
-SRC      = src/main.s src/overworld.s src/dungeon.s src/combat.s src/ui.s
+SRC      = src/main.s src/overworld.s src/dungeon.s src/combat.s src/ui.s src/gfx.s
 LIBSRC   = $(LIBDIR)/init.s
 
 # Object files
