@@ -9,6 +9,7 @@
 
 .importzp JoyPress, GameState
 .importzp PlayerFood, PlayerHP
+.import DungeonInit
 
 ; ============================================================================
 ; Constants
@@ -296,6 +297,7 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
 @enter_dungeon:
     lda #STATE_DUNGEON
     sta GameState
+    jsr DungeonInit
     rts
 @enter_castle:
     lda #STATE_CASTLE

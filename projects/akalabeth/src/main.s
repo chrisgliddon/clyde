@@ -12,8 +12,8 @@
 
 .import InitSNES
 .import OverworldInit, OverworldUpdate, OverworldRender
-.import DungeonInit
-.import CombatInit
+.import DungeonInit, DungeonUpdate, DungeonRender
+.import CombatInit, CombatUpdate
 .import UiInit, UiDrawStats
 .import GfxUploadOverworld, GfxUploadFont
 .importzp MapDirty, PlayerX, PlayerY
@@ -215,11 +215,13 @@ STATE_CASTLE    = $05
     jmp @loop
 
 @do_dungeon:
-    ; TODO: Phase 4 — DungeonUpdate + DungeonRender
+    jsr DungeonUpdate
+    jsr UiDrawStats
     jmp @loop
 
 @do_combat:
-    ; TODO: Phase 5 — CombatUpdate
+    jsr CombatUpdate
+    jsr UiDrawStats
     jmp @loop
 
 @do_shop:
