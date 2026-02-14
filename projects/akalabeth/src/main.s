@@ -16,6 +16,7 @@
 .import UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .import UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .import UiShowGameOver, UiShowVictory
+.import UiClearBg3
 .import GfxUploadOverworld, GfxUploadFont
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
@@ -325,7 +326,13 @@ STATE_CHARGEN_CLASS = $09
     ; Start the game
     jsr CombatInit
     jsr OverworldInit
+    jsr UiClearBg3
+    lda #FORCE_BLANK
+    sta INIDISP
+    sta SHADOW_INIDISP
     jsr GfxUploadOverworld
+    lda #BRIGHTNESS_MAX
+    sta SHADOW_INIDISP
     jsr OverworldRender
     lda #$01
     sta MapDirty
@@ -347,6 +354,25 @@ STATE_CHARGEN_CLASS = $09
 ; --- Dungeon ---
 @do_dungeon:
     jsr DungeonUpdate
+    lda GameState
+    cmp #STATE_OVERWORLD
+    beq @exit_dungeon_gfx
+    cmp #STATE_GAMEOVER
+    beq :+
+    jsr UiDrawStats
+:   jmp @loop
+@exit_dungeon_gfx:
+    jsr UiClearBg3
+    lda #FORCE_BLANK
+    sta INIDISP
+    sta SHADOW_INIDISP
+    jsr GfxUploadOverworld
+    lda #BRIGHTNESS_MAX
+    sta SHADOW_INIDISP
+    jsr OverworldRender
+    lda #$01
+    sta MapDirty
+    sta StatsDirty
     jsr UiDrawStats
     jmp @loop
 
@@ -385,7 +411,13 @@ STATE_CHARGEN_CLASS = $09
 
 @leave_shop:
     SET_A8
+    jsr UiClearBg3
+    lda #FORCE_BLANK
+    sta INIDISP
+    sta SHADOW_INIDISP
     jsr GfxUploadOverworld
+    lda #BRIGHTNESS_MAX
+    sta SHADOW_INIDISP
     jsr OverworldRender
     lda #STATE_OVERWORLD
     sta GameState
@@ -497,7 +529,13 @@ STATE_CHARGEN_CLASS = $09
 
 @leave_castle:
     SET_A8
+    jsr UiClearBg3
+    lda #FORCE_BLANK
+    sta INIDISP
+    sta SHADOW_INIDISP
     jsr GfxUploadOverworld
+    lda #BRIGHTNESS_MAX
+    sta SHADOW_INIDISP
     jsr OverworldRender
     lda #STATE_OVERWORLD
     sta GameState

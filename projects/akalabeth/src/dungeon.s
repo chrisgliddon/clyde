@@ -4,6 +4,8 @@
 .include "macros.s"
 
 .export DungeonInit, DungeonUpdate, DungeonRender
+.export DungeonGrid
+.exportzp DungPlayerX, DungPlayerY, DungFloor, DungFacing
 
 .importzp JoyPress, GameState, MapDirty
 .importzp PlayerHP, PlayerFood, PlayerGold
@@ -168,7 +170,12 @@ MonType:        .res MAX_MONSTERS
 
     jsr GenerateFloor
     jsr PlaceMonsters
+    lda #FORCE_BLANK
+    sta INIDISP
+    sta SHADOW_INIDISP
     jsr GfxUploadDungeon
+    lda #BRIGHTNESS_MAX
+    sta SHADOW_INIDISP
     jsr DungeonRender
     lda #$01
     sta MapDirty
@@ -627,12 +634,11 @@ MonType:        .res MAX_MONSTERS
     SET_A8
     stz DG_LuckKills
 @no_luck:
-    jsr GfxUploadOverworld
+    ; Just set state — GfxUploadOverworld handled by main loop
     lda #STATE_OVERWORLD
     sta GameState
     lda #$01
     sta MapDirty
-    lda #$01
     sta StatsDirty
     rts
 
@@ -1764,6 +1770,7 @@ MonType:        .res MAX_MONSTERS
 ; Instead we take row in Y register, col in X register (both 8-bit values),
 ; tile in A. Clobbers DG_Offset.
 .proc WriteTile
+    phx                     ; Save col (16-bit X)
     pha                     ; Save tile
     ; Byte offset = (row * 32 + col) * 2
     stz DG_Offset+1
@@ -1789,6 +1796,7 @@ MonType:        .res MAX_MONSTERS
     pla                     ; Restore tile
     sta TilemapBuffer,x
     stz TilemapBuffer+1,x
+    plx                     ; Restore col
     rts
 .endproc
 

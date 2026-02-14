@@ -6,7 +6,7 @@
 .export UiInit, UiDrawStats, UiShowTitle, UiShowShop, UiShowCastle
 .export UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .export UiShowGameOver, UiShowVictory
-.export Bg3Tilemap
+.export UiClearBg3, Bg3Tilemap
 .exportzp StatsDirty
 
 .importzp PlayerHP, PlayerFood, PlayerGold, PlayerQuest
@@ -128,6 +128,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     bne @loop
 
 @done:
+    SET_AXY8                ; Restore 8-bit registers for callers
     rts
 .endproc
 
@@ -220,7 +221,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; Format: "HP:nnn FD:nnn GP:nnn"
 ; ============================================================================
 .proc UiDrawStats
-    SET_A8
+    SET_AXY8                ; Callers may have 16-bit XY; ensure 8-bit for ldx/ldy immediates
 
     lda StatsDirty
     beq @done
@@ -308,7 +309,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     inx
     cpx #2048
     bne @clear
-    SET_A8
+    SET_AXY8
     rts
 .endproc
 
@@ -316,7 +317,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowTitle — display title screen text on BG3
 ; ============================================================================
 .proc UiShowTitle
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     ; Configure PPU for text-only display (via shadow registers)
@@ -363,7 +364,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowShop — display shop menu on BG3
 ; ============================================================================
 .proc UiShowShop
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     ; Title
@@ -532,7 +533,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowCastle — display castle/quest screen on BG3
 ; ============================================================================
 .proc UiShowCastle
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     ; Title
@@ -673,7 +674,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowGameOver — mourning screen
 ; ============================================================================
 .proc UiShowGameOver
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     lda #<str_go_mourn
@@ -709,7 +710,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowVictory — knighthood screen
 ; ============================================================================
 .proc UiShowVictory
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     lda #<str_vic_line1
@@ -753,7 +754,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowChargenSeed — lucky number + difficulty entry screen
 ; ============================================================================
 .proc UiShowChargenSeed
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     lda #<str_cg_lucky
@@ -814,7 +815,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowChargenStats — stat display with accept/reroll
 ; ============================================================================
 .proc UiShowChargenStats
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     ; HIT POINTS
@@ -935,7 +936,7 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; UiShowChargenClass — Fighter or Mage choice
 ; ============================================================================
 .proc UiShowChargenClass
-    SET_A8
+    SET_AXY8
     jsr UiClearBg3
 
     lda #<str_cg_class_q

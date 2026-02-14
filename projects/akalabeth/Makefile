@@ -16,12 +16,23 @@ CA65     = ca65
 LD65     = ld65
 CA65FLAGS = --cpu 65816 -I $(LIBDIR)
 
-.PHONY: all clean
+# Mesen2 test runner
+MESEN    = /Applications/Mesen.app/Contents/MacOS/Mesen
+TESTS    = tests/test_chargen.lua tests/test_overworld.lua tests/test_dungeon.lua tests/test_shop_buy.lua
+
+.PHONY: all clean test
 
 all: $(ROM)
 
 $(ROM): $(OBJ) $(CFG) | build
-	$(LD65) -C $(CFG) -o $@ $(OBJ)
+	$(LD65) -C $(CFG) -o $@ -Ln build/akalabeth.sym --dbgfile build/akalabeth.dbg $(OBJ)
+
+test: $(ROM)
+	@for t in $(TESTS); do \
+		echo "Running $$t..."; \
+		$(MESEN) --testRunner --enableStdout --debug.scriptWindow.allowIoOsAccess=true $(ROM) $$t || exit 1; \
+	done
+	@echo "All tests passed."
 
 # Assemble project sources
 src/%.o: src/%.s | build

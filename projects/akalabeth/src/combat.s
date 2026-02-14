@@ -64,6 +64,7 @@ CB_TempA:       .res 1      ; Temp for RollStat
     stz PlayerAmulet
 
     ; First quest = INT(WIS/3), clamped 0-9
+    SET_XY8
     lda PlayerWIS
     ldx #$00
 @div3:
