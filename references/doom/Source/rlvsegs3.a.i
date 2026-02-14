@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	88
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'rlvsegs3.a 1.88'
+	ENDM
+VSTRING	MACRO
+		dc.b	'rlvsegs3.a 1.88 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: rlvsegs3.a 1.88 (19.11.95)',0
+	ENDM

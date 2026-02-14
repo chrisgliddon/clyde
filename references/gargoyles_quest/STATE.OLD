@@ -1,0 +1,31 @@
+[edit-]
+screen=132 43
+toggles=1 1 0 1 0 0
+srch=CTRL_JUMP
+src=OBJ_WIDTH
+rpl=#GOL_WIDTH
+file=c:\000_work\gargoyle\source\gg_gol.658 1 1037 6 1045
+[brief]
+file=c:\000_work\gargoyle\source\gg_gol.658 1 1037 6 1045 59 40 88 1 c=0
+file=c:\000_work\gargoyle\source\gg_scrl.658 1 1 24 19 1 40 57 1 c=0
+file=c:\000_work\gargoyle\source\gg_main.658 1 649 1 660 90 40 130 1 c=0
+file=c:\000_work\gargoyle\source\gg_con.658 6 24 33 34
+file=c:\000_work\gargoyle\source\gg_lvls.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_obj.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_anim.658 1 862 2 889
+file=c:\000_work\gargoyle\source\gg_scrpt.658 1 3096 31 3112
+file=c:\000_work\gargoyle\source\gg_joyhd.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_lvl1.658 1 104 25 106
+file=c:\000_work\gargoyle\source\macros.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_maps.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_ram.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_text.658 1 1 1 1
+file=c:\000_work\gargoyle\source\groups.658 1 1 1 1
+file=c:\000_work\gargoyle\source\ppu_reg.658 1 1 1 1
+file=c:\000_work\gargoyle\source\gg_dma.658 1 1 1 1
+file=c:\000_work\gargoyle\sprites\goliath\gol_jmp.any 1 28 34 32
+[shared-]
+pmark=c:\000_work\gargoyle\source\gg_gol.658 6 1045
+[psyq]
+makefile=makefile.mak
+

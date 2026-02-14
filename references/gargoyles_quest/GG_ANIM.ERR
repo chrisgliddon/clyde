@@ -1,0 +1,82 @@
+
+Psy-Q 65816 version 1.13
+
+GG_ANIM.658(23) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(27) : Error : Op-code not recognised
+ set_xy16
+GG_ANIM.658(66) : Error : Op-code not recognised
+ set_axy8
+GG_ANIM.658(73) : Error : Op-code not recognised
+ set_xy16
+GG_ANIM.658(77) : Error : Op-code not recognised
+DF_SMALL set_a16
+GG_ANIM.658(84) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(86) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(91) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(93) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(106) : Error : Op-code not recognised
+ set_axy8
+GG_ANIM.658(113) : Error : Op-code not recognised
+ set_xy16
+GG_ANIM.658(121) : Error : Op-code not recognised
+ set_axy8
+GG_ANIM.658(127) : Error : Op-code not recognised
+ set_xy16
+GG_ANIM.658(142) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(144) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(173) : Error : Op-code not recognised
+DF_DONE set_a16
+GG_ANIM.658(175) : Error : Op-code not recognised
+ set_axy8
+GG_ANIM.658(213) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(217) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(225) : Error : Op-code not recognised
+@5 set_a16
+GG_ANIM.658(232) : Error : Op-code not recognised
+@8 set_a8
+GG_ANIM.658(236) : Error : Op-code not recognised
+ set_xy16
+GG_ANIM.658(242) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(248) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(251) : Error : Op-code not recognised
+@200 set_a16
+GG_ANIM.658(285) : Error : Op-code not recognised
+ set_axy16
+GG_ANIM.658(302) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(309) : Error : Op-code not recognised
+ set_axy16
+GG_ANIM.658(311) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(317) : Error : Op-code not recognised
+DMA_LP set_a8
+GG_ANIM.658(327) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(335) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(342) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(350) : Error : Op-code not recognised
+ set_a16
+GG_ANIM.658(355) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(360) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(383) : Error : Op-code not recognised
+ set_a8
+GG_ANIM.658(395) : Error : Op-code not recognised
+ set_axy16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+38 error(s) from 450 lines in 0.1 seconds

@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	206
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'musicdrv.a 1.206'
+	ENDM
+VSTRING	MACRO
+		dc.b	'musicdrv.a 1.206 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: musicdrv.a 1.206 (19.11.95)',0
+	ENDM

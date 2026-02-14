@@ -1,0 +1,124 @@
+;------------------
+;
+;  GROUPS.658 -- GROUP DEFINITIONS
+;
+;INCLUDE THIS FILE INSIDE SN_MAIN.658
+;
+;------------------
+
+ZERO_GROUP	GROUP	BSS,ORG($0)	;,SIZE($100)
+
+;------------------
+
+OBJ_GROUP	GROUP	BSS,ORG($100)	;,SIZE($100)
+
+;------------------
+
+RAM1_GROUP	GROUP	BSS,ORG($1000)	;,SIZE($1000)
+
+;------------------
+
+RAM2_GROUP	GROUP	BSS,ORG($7E2000)	;,SIZE($1E000)
+
+;------------------
+
+PAGE00_GROUP	GROUP	ORG($008000),SIZE($7FC0,$FF)
+
+;------------------
+
+PAGE01_GROUP	GROUP	ORG($018000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE02_GROUP	GROUP	ORG($028000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE03_GROUP	GROUP	ORG($038000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE04_GROUP	GROUP	ORG($048000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE05_GROUP	GROUP	ORG($058000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE06_GROUP	GROUP	ORG($068000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE07_GROUP	GROUP	ORG($078000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP7	GROUP	ORG($088000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP8	GROUP	ORG($098000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP5	GROUP	ORG($0A8000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP6	GROUP	ORG($0B8000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP3	GROUP	ORG($0C8000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP4	GROUP	ORG($0D8000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP1	GROUP	ORG($0E8000),SIZE($8000,$FF)
+
+;------------------
+
+MUSIC_GROUP2	GROUP	ORG($0F8000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE10_GROUP	GROUP	ORG($108000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE11_GROUP	GROUP	ORG($118000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE12_GROUP	GROUP	ORG($128000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE13_GROUP	GROUP	ORG($138000),SIZE($8000,$FF)
+
+;------------------
+
+PAGE14_GROUP	GROUP	ORG($148000),SIZE($8000,$FF)
+
+;------------------
+
+REG_GROUP	GROUP	ORG($00FFC0)	;,SIZE($20)
+
+;------------------  
+
+VECTOR_GROUP	GROUP	ORG($00FFE0)	;,SIZE($10)
+
+;------------------
+
+DEBUG_GROUP	GROUP	ORG($00FFF0)	;,SIZE($10)
+
+;------------------
+
+;------------------
+;------------------
+;------------------
+

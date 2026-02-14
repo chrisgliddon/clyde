@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	104
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'rlwalls.a 1.104'
+	ENDM
+VSTRING	MACRO
+		dc.b	'rlwalls.a 1.104 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: rlwalls.a 1.104 (19.11.95)',0
+	ENDM

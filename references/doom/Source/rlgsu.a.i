@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	261
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'rlgsu.a 1.261'
+	ENDM
+VSTRING	MACRO
+		dc.b	'rlgsu.a 1.261 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: rlgsu.a 1.261 (19.11.95)',0
+	ENDM

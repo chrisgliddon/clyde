@@ -1,0 +1,136 @@
+
+Psy-Q 65816 version 1.13
+
+GG_GOL.658(86) : Error : Op-code not recognised
+GOL_ANIMS anim GOL_CTRL_WALK,0,GOL_RUN_ANM,3,3
+GG_GOL.658(91) : Error : Op-code not recognised
+ anim GOL_CTRL_JUMP,0,GOL_JMP_ANM,4,4
+GG_GOL.658(96) : Error : Op-code not recognised
+ anim GOL_CTRL_FALL,0,GOL_FALL_ANM,2,4
+GG_GOL.658(101) : Error : Op-code not recognised
+ anim GOL_CTRL_PUNCH,0,GOL_PUN_ANM,2,2
+GG_GOL.658(106) : Error : Op-code not recognised
+ anim GOL_CTRL_IDLE,0,GOL_IDLE_ANM,2,2
+GG_GOL.658(111) : Error : Op-code not recognised
+ anim GOL_CTRL_FLY,0,GOL_RUN_ANM,2,2
+GG_GOL.658(116) : Error : Op-code not recognised
+ anim GOL_CTRL_TRAJ,0,GOL_IDLE_ANM,8,8
+GG_GOL.658(121) : Error : Op-code not recognised
+ anim GOL_CTRL_CLIMB,0,GOL_CLIM_ANM,2,2
+GG_GOL.658(126) : Error : Op-code not recognised
+ anim GOL_CTRL_R2S,0,GOL_R2S_ANM,3,3
+GG_GOL.658(131) : Error : Op-code not recognised
+ anim GOL_CTRL_SPRT,0,GOL_SPRT_ANM,3,3
+GG_GOL.658(136) : Error : Op-code not recognised
+ anim GOL_CTRL_JFLP,0,GOL_JFLP_ANM,3,3
+GG_GOL.658(141) : Error : Op-code not recognised
+ anim GOL_CTRL_GLIDE,0,GOL_IDLE_ANM,2,2
+GG_GOL.658(146) : Error : Op-code not recognised
+ anim GOL_CTRL_CIDLE,0,GOL_CIDL_ANM,3,3
+GG_GOL.658(151) : Error : Op-code not recognised
+ anim GOL_CTRL_CRAWL,0,GOL_CCRW_ANM,3,3
+GG_GOL.658(156) : Error : Op-code not recognised
+ anim GOL_CTRL_CLIDL,0,GOL_IDLE_ANM,2,2
+GG_GOL.658(407) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(414) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(443) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(468) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(526) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(580) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(601) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(621) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(671) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(732) : Error : Op-code not recognised
+@WALK_RIGHT set_a8
+GG_GOL.658(740) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(746) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(753) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(757) : Error : Op-code not recognised
+@IDLE_DONE set_a16
+GG_GOL.658(775) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(800) : Error : Op-code not recognised
+@WALK_RIGHT set_a8
+GG_GOL.658(803) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(883) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(886) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(916) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(929) : Error : Op-code not recognised
+@FLY_LEFT set_a8
+GG_GOL.658(932) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(946) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(949) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(976) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(1008) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1011) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1030) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1033) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1075) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(1084) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1095) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1098) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1102) : Error : Op-code not recognised
+@LEFT_CLIMB set_a8
+GG_GOL.658(1105) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1176) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1181) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1185) : Error : Op-code not recognised
+@NOT_CAT set_a16
+GG_GOL.658(1321) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(1369) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1382) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1393) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1397) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1442) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(1525) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(1532) : Error : Op-code not recognised
+ set_a8
+GG_GOL.658(1536) : Error : Op-code not recognised
+ set_a16
+GG_GOL.658(1580) : Error : Op-code not recognised
+ set_axy16
+GG_GOL.658(1594) : Error : Op-code not recognised
+ set_a8
+
+Too many errors, assembler aborting...
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+64 error(s) from 1624 lines in 0.2 seconds

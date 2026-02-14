@@ -1,0 +1,164 @@
+;**********************************************************************
+;*                                                                    *
+;*                   P R O J E C T :   REALITY_ENGINE                 *
+;*                                                                    *
+;*                        ENGINE MESSAGES MODULE                      *
+;*                                                                    *
+;**********************************************************************
+
+	include	rage.i
+	include	rle.i
+	include	gsumac.i
+
+	public	_RLMsgs
+
+
+	SECTION	ENGINE_GSUCODE
+	cpu	sfx
+
+;
+;	* * * * * * *       REALITY_ENGINE MESSAGES       * * * * * * *
+;
+_RLMsgs
+
+ArmorMsgA
+MegaArmorMsgA
+HealthBonusMsgA
+ArmorBonusMsgA
+RedKeyCardMsgA
+BlueKeyCardMsgA
+YellowKeyCardMsgA
+StimPackMsgA
+MediKitMsgA
+ClipMsgA
+BulletsBoxMsgA
+RocketMsgA
+RocketsBoxMsgA
+CellMsgA
+CellPackMsgA
+ShellsMsgA
+ShellsBoxMsgA
+BackPackMsgA
+	dc.b	'PICKED UP'
+
+BerserkMsgB
+BerserkMsgC
+InvulnerableMsgC
+ComputerMapMsgC
+SuperChargeMsgC
+ClipMsgC
+RocketMsgC
+ShotGunMsgC
+	dc.b	0
+
+ChainGunMsgA
+PlasmaGunMsgA
+RocketGunMsgA
+ShotGunMsgA
+	dc.b	'YOU GOT A',0
+
+RadSuitMsgA		dc.b	'RADIATION',0		; RADIATION SHEIDLING SUIT
+RadSuitMsgB		dc.b	' SHIELDIN',0
+RadSuitMsgC		dc.b	'G SUIT',0
+
+BerserkMsgA		dc.b	'BERSERK!',0		; BERSERK!
+
+InvulnerableMsgA	dc.b	'INVULNERA',0		; INVULNERABILITY!
+InvulnerableMsgB	dc.b	'BILITY!',0
+
+InvisibleMsgA		dc.b	'PARTIAL I',0		; PARTIAL INVISIBILITY
+InvisibleMsgB		dc.b	'NVISIBILI',0
+InvisibleMsgC		dc.b	'TY',0
+
+ComputerMapMsgA		dc.b	'COMPUTER ',0		; COMPUTER AREA MAP
+ComputerMapMsgB		dc.b	'AREA MAP',0
+
+LightGogglesMsgA	dc.b	'LIGHT AMP',0		; LIGHT AMPLIFICATION VISOR
+LightGogglesMsgB	dc.b	'LIFICATIO',0
+LightGogglesMsgC	dc.b	'N VISOR',0
+
+DoorRedLockedMsgA	dc.b	'YOU NEED ',0		; YOU NEED A RED KEY!
+DoorRedLockedMsgB	dc.b	'A RED KEY',0
+DoorRedLockedMsgC	dc.b	'!',0
+
+DoorBlueLockedMsgA	dc.b	'YOU NEED ',0		; YOU NEED A BLUE KEY!
+DoorBlueLockedMsgB	dc.b	'A BLUE KE',0
+DoorBlueLockedMsgC	dc.b	'Y!',0
+
+DoorYellowLockedMsgA	dc.b	'YOU NEED ',0		; YOU NEED A YELLOW KEY!
+DoorYellowLockedMsgB	dc.b	'A YELLOW ',0
+DoorYellowLockedMsgC	dc.b	'KEY!',0
+
+ArmorMsgB		dc.b	' THE ARMO',0		; PICKED UP THE ARMOR
+ArmorMsgC		dc.b	'R',0
+
+MegaArmorMsgB		dc.b	' THE MEGA',0		; PICKED UP THE MEGAARMOR!
+MegaArmorMsgC		dc.b	'ARMOR',0
+
+HealthBonusMsgB		dc.b	' A HEALTH',0		; PICKED UP A HEALTH BONUS
+ArmorBonusMsgC
+HealthBonusMsgC		dc.b	' BONUS',0
+
+ArmorBonusMsgB		dc.b	' AN ARMOR',0		; PICKED UP AN ARMOR BONUS
+
+SuperChargeMsgA		dc.b	'SUPERCHAR',0		; SUPERCHARGE!
+SuperChargeMsgB		dc.b	'GE!',0
+
+RedKeyCardMsgB		dc.b	' A RED KE',0		; PICKED UP A RED KEY
+RedKeyCardMsgC		dc.b	'Y',0
+
+BlueKeyCardMsgB		dc.b	' A BLUE K',0		; PICKED UP A BLUE KEY
+BlueKeyCardMsgC		dc.b	'EY',0
+
+YellowKeyCardMsgB	dc.b	' A YELLOW',0		; PICKED UP A YELLOW KEY
+YellowKeyCardMsgC	dc.b	' KEY',0
+
+StimPackMsgB		dc.b	' A STIMPA',0		; PICKED UP A STIMPACK
+StimPackMsgC		dc.b	'CK',0
+
+MediKitMsgB		dc.b	' A MEDIKI',0		; PICKED UP A MEDIKIT
+MediKitMsgC		dc.b	'T',0
+
+ClipMsgB		dc.b	' A CLIP',0		; PICKED UP A CLIP
+
+RocketsBoxMsgB
+BulletsBoxMsgB		dc.b	' A BOX OF',0		; PICKED UP A BOX OF BULLETS
+BulletsBoxMsgC		dc.b	' BULLETS',0
+
+RocketMsgB		dc.b	' A ROCKET',0		; PICKED UP A ROCKET
+
+RocketsBoxMsgC		dc.b	' ROCKETS',0		; PICKED UP A BOX OF ROCKETS
+
+CellMsgB		dc.b	' AN ENERG',0		; PICKED UP AN ENERGY CELL
+CellMsgC		dc.b	'Y CELL',0
+
+CellPackMsgB		dc.b	' A CELL P',0		; PICKED UP A CELLPACK
+CellPackMsgC		dc.b	'ACK',0
+
+ShellsMsgB		dc.b	' 4 SHOTGU',0		; PICKED UP 4 SHOTGUN SHELLS
+ShellsMsgC		dc.b	'N SHELLS',0
+
+ShellsBoxMsgB		dc.b	' A BOX OF',0		; PICKED UP A BOX OF SHELLS
+ShellsBoxMsgC		dc.b	' SHELLS',0
+
+BackPackMsgB		dc.b	' A BACKPA',0		; PICKED UP A BACKPACK
+BackPackMsgC		dc.b	'CK',0
+
+BFGMsgA			dc.b	'THE BFG90',0		; THE BFG9000!  OH YES...
+BFGMsgB			dc.b	'00!  OH Y',0
+BFGMsgC			dc.b	'ES...',0
+
+ChainGunMsgB		dc.b	' CHAINGUN',0		; YOU GOT A CHAINGUN!
+ChainGunMsgC		dc.b	'!',0
+
+RocketGunMsgB		dc.b	' ROCKET L',0		; YOU GOT A ROCKET LAUNCHER!
+RocketGunMsgC		dc.b	'AUNCHER!',0
+
+PlasmaGunMsgB		dc.b	' PLASMA G',0		; YOU GOT A PLASMA GUN!
+PlasmaGunMsgC		dc.b	'UN!',0
+
+ShotGunMsgB		dc.b	' SHOTGUN!',0		; YOU GOT A SHOTGUN!
+
+ChainSawMsgA		dc.b	'A CHAINSA',0		; A CHAINSAW! FIND SOME MEAT!
+ChainSawMsgB		dc.b	'W! FIND S',0
+ChainSawMsgC		dc.b	'OME MEAT!',0

@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	156
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'sculpt.a 1.156'
+	ENDM
+VSTRING	MACRO
+		dc.b	'sculpt.a 1.156 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: sculpt.a 1.156 (19.11.95)',0
+	ENDM

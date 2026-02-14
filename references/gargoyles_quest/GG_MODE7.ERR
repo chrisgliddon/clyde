@@ -1,0 +1,30 @@
+
+Psy-Q 65816 version 1.13
+
+GG_MODE7.658(9) : Error : Op-code not recognised
+ set_axy16
+GG_MODE7.658(13) : Error : Op-code not recognised
+ set_a8
+GG_MODE7.658(18) : Error : Op-code not recognised
+ set_a16
+GG_MODE7.658(21) : Error : Op-code not recognised
+ set_a8
+GG_MODE7.658(26) : Error : Op-code not recognised
+ set_a16
+GG_MODE7.658(32) : Error : Op-code not recognised
+ set_a8
+GG_MODE7.658(37) : Error : Op-code not recognised
+ set_a16
+GG_MODE7.658(40) : Error : Op-code not recognised
+ set_a8
+GG_MODE7.658(69) : Error : Op-code not recognised
+ set_axy16
+GG_MODE7.658(87) : Error : Op-code not recognised
+ set_axy16
+GG_MODE7.658(105) : Error : Op-code not recognised
+ set_axy16
+GG_MODE7.658(123) : Error : Op-code not recognised
+ set_axy16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+12 error(s) from 167 lines in 0.1 seconds

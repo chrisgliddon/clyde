@@ -1,0 +1,30 @@
+
+Psy-Q 65816 version 1.13
+
+GG_LVL1.658(19) : Error : Op-code not recognised
+ set_axy16
+GG_LVL1.658(59) : Error : Op-code not recognised
+ set_a8
+GG_LVL1.658(64) : Error : Op-code not recognised
+ set_axy16
+GG_LVL1.658(85) : Error : Op-code not recognised
+ set_axy16
+GG_LVL1.658(124) : Error : Op-code not recognised
+ set_a8
+GG_LVL1.658(145) : Error : Op-code not recognised
+ set_a16
+GG_LVL1.658(167) : Error : Op-code not recognised
+ set_axy16
+GG_LVL1.658(188) : Error : Op-code not recognised
+@WALK_RIGHT set_a8
+GG_LVL1.658(191) : Error : Op-code not recognised
+ set_a16
+GG_LVL1.658(203) : Error : Op-code not recognised
+@NOT_RIGHT set_a8
+GG_LVL1.658(206) : Error : Op-code not recognised
+ set_a16
+GG_LVL1.658(218) : Error : Op-code not recognised
+ set_axy16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+12 error(s) from 267 lines in 0.0 seconds

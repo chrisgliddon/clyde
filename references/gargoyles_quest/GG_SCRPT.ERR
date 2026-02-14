@@ -1,0 +1,136 @@
+
+Psy-Q 65816 version 1.13
+
+GG_SCRPT.658(85) : Error : Op-code not recognised
+TTL_SCRIPT sc_jsl RESET_RAM
+GG_SCRPT.658(87) : Error : Op-code not recognised
+ sc_jsl CLEAR_SPRITES
+GG_SCRPT.658(89) : Error : Op-code not recognised
+ sc_lvl TITLE_LVD
+GG_SCRPT.658(91) : Error : Op-code not recognised
+ sc_clrv
+GG_SCRPT.658(93) : Error : Op-code not recognised
+ sc_pal TTL_PAL,0*16,32*1
+GG_SCRPT.658(95) : Error : Op-code not recognised
+ sc_vram TTL_CHAR,0,TTL_CHR_SZ
+GG_SCRPT.658(97) : Error : Op-code not recognised
+ sc_pal PAL2,1*16,32*1
+GG_SCRPT.658(99) : Error : Op-code not recognised
+ sc_vram FONT1,$6000,96*32
+GG_SCRPT.658(101) : Error : Op-code not recognised
+ sc_jph TITLE_JPL
+GG_SCRPT.658(103) : Error : Op-code not recognised
+ sc_sch SCROLL_OFF
+GG_SCRPT.658(109) : Error : Op-code not recognised
+ sc_scrn 2,TTL_MAP,16,16,TTL_BLOCK,TTL_BLK_SZ,0,0
+GG_SCRPT.658(111) : Error : Op-code not recognised
+ sc_clr_sb
+GG_SCRPT.658(113) : Error : Op-code not recognised
+ sc_jsl DO_MAIN_MENU
+GG_SCRPT.658(116) : Error : Op-code not recognised
+ sc_on
+GG_SCRPT.658(118) : Error : Op-code not recognised
+ sc_jsl FADE_IN
+GG_SCRPT.658(120) : Error : Op-code not recognised
+ sc_jsl TEST_DCMP
+GG_SCRPT.658(122) : Error : Op-code not recognised
+ sc_end
+GG_SCRPT.658(127) : Error : Op-code not recognised
+LVL1_SCRIPT sc_jsl RESET_RAM
+GG_SCRPT.658(129) : Error : Op-code not recognised
+ sc_lvl LVL1_LVD
+GG_SCRPT.658(131) : Error : Op-code not recognised
+ sc_pal LVL1_PAL,0*16,32*7
+GG_SCRPT.658(134) : Error : Op-code not recognised
+ sc_dcvr LVL1_CHAR,0,LVL1_CHR_SZ
+GG_SCRPT.658(136) : Error : Op-code not recognised
+ sc_jph LVL1_JPL
+GG_SCRPT.658(138) : Error : Op-code not recognised
+ sc_sch CK_SCROLL
+GG_SCRPT.658(148) : Error : Op-code not recognised
+ sc_map 1,$0,$40A,128,70,2,LVL1_MAP,LVL1_BLOCK,LVL1_BLK_SZ,LVL1_FLR,CONTOUR1
+GG_SCRPT.658(150) : Error : Op-code not recognised
+ sc_pal GOL_RUN_PAL,8*16,32*1
+GG_SCRPT.658(152) : Error : Op-code not recognised
+ sc_jsl INIT_GOLIATH
+GG_SCRPT.658(154) : Error : Op-code not recognised
+ sc_on
+GG_SCRPT.658(156) : Error : Op-code not recognised
+ sc_jsl FADE_IN
+GG_SCRPT.658(158) : Error : Op-code not recognised
+ sc_end
+GG_SCRPT.658(163) : Error : Op-code not recognised
+LVL2_SCRIPT sc_jsl RESET_RAM
+GG_SCRPT.658(165) : Error : Op-code not recognised
+ sc_lvl LVL1_LVD
+GG_SCRPT.658(167) : Error : Op-code not recognised
+ sc_pal LVL2_PAL,0*16,32*7
+GG_SCRPT.658(170) : Error : Op-code not recognised
+ sc_dcvr LVL2_CHAR,0,LVL2_CHR_SZ
+GG_SCRPT.658(172) : Error : Op-code not recognised
+ sc_jph LVL1_JPL
+GG_SCRPT.658(174) : Error : Op-code not recognised
+ sc_sch CK_SCROLL
+GG_SCRPT.658(184) : Error : Op-code not recognised
+ sc_map 1,$4BA,$679,80,126,2,LVL2_MAP,LVL2_BLOCK,LVL2_BLK_SZ,LVL2_FLR,CONTOUR1
+GG_SCRPT.658(186) : Error : Op-code not recognised
+ sc_pal GOL_RUN_PAL,8*16,32*1
+GG_SCRPT.658(188) : Error : Op-code not recognised
+ sc_jsl INIT_GOLIATH
+GG_SCRPT.658(190) : Error : Op-code not recognised
+ sc_on
+GG_SCRPT.658(192) : Error : Op-code not recognised
+ sc_jsl FADE_IN
+GG_SCRPT.658(194) : Error : Op-code not recognised
+ sc_end
+GG_SCRPT.658(199) : Error : Op-code not recognised
+LVL3_SCRIPT sc_jsl RESET_RAM
+GG_SCRPT.658(201) : Error : Op-code not recognised
+ sc_lvl LVL1_LVD
+GG_SCRPT.658(203) : Error : Op-code not recognised
+ sc_pal LVL3_PAL,0*16,32*7
+GG_SCRPT.658(206) : Error : Op-code not recognised
+ sc_dcvr LVL3_CHAR,0,LVL3_CHR_SZ
+GG_SCRPT.658(208) : Error : Op-code not recognised
+ sc_jph LVL1_JPL
+GG_SCRPT.658(210) : Error : Op-code not recognised
+ sc_sch CK_SCROLL
+GG_SCRPT.658(220) : Error : Op-code not recognised
+ sc_map 1,$44F,$9E-$50,80,126,2,LVL3_MAP,LVL3_BLOCK,LVL3_BLK_SZ,LVL3_FLR,CONTOUR1
+GG_SCRPT.658(222) : Error : Op-code not recognised
+ sc_pal GOL_RUN_PAL,8*16,32*1
+GG_SCRPT.658(224) : Error : Op-code not recognised
+ sc_jsl INIT_GOLIATH
+GG_SCRPT.658(226) : Error : Op-code not recognised
+ sc_on
+GG_SCRPT.658(228) : Error : Op-code not recognised
+ sc_jsl FADE_IN
+GG_SCRPT.658(230) : Error : Op-code not recognised
+ sc_end
+GG_SCRPT.658(235) : Error : Op-code not recognised
+LVL5A_SCRIPT sc_jsl RESET_RAM
+GG_SCRPT.658(237) : Error : Op-code not recognised
+ sc_lvl LVL5_LVD
+GG_SCRPT.658(239) : Error : Op-code not recognised
+ sc_pal LVL5A_PAL,0*16,32*7
+GG_SCRPT.658(242) : Error : Op-code not recognised
+ sc_dcvr LVL5A_CHAR,0,LVL5A_CHR_SZ
+GG_SCRPT.658(244) : Error : Op-code not recognised
+ sc_jph LVL1_JPL
+GG_SCRPT.658(246) : Error : Op-code not recognised
+ sc_sch LVL5A_SCROLL
+GG_SCRPT.658(256) : Error : Op-code not recognised
+ sc_map 1,0,0,16,800,0,LVL5A_MAP,LVL5A_BLOCK,LVL5A_BLK_SZ,LVL5A_FLR,CONTOUR1
+GG_SCRPT.658(266) : Error : Op-code not recognised
+ sc_map 2,0,0,16,800,2,LVL5A_MAP2,LVL5A_BLOCK,LVL5A_BLK_SZ,LVL5A_FLR,CONTOUR1
+GG_SCRPT.658(268) : Error : Op-code not recognised
+ sc_pal GOL_RUN_PAL,8*16,32*1
+GG_SCRPT.658(270) : Error : Op-code not recognised
+ sc_jsl INIT_GOLIATH
+GG_SCRPT.658(272) : Error : Op-code not recognised
+ sc_jsl INIT_SCRL5
+
+Too many errors, assembler aborting...
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+64 error(s) from 302 lines in 0.2 seconds

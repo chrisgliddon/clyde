@@ -1,0 +1,136 @@
+
+Psy-Q 65816 version 1.13
+
+GG_SCRL.658(58) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(72) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(86) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(120) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(136) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(165) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(170) : Error : Op-code not recognised
+@LK_RIGHT set_a16
+GG_SCRL.658(192) : Error : Op-code not recognised
+@LK_LEFT set_a16
+GG_SCRL.658(247) : Error : Op-code not recognised
+@ERR_POS set_a8
+GG_SCRL.658(251) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(273) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(277) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(283) : Error : Op-code not recognised
+@NEW_XSCROLL set_a8
+GG_SCRL.658(286) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(396) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(435) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(572) : Error : Op-code not recognised
+SCROLL_SCRN set_a8
+GG_SCRL.658(576) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(595) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(598) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(619) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(622) : Error : Op-code not recognised
+@NO_Y_SCROLL1 set_a16
+GG_SCRL.658(629) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(633) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(652) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(655) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(676) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(679) : Error : Op-code not recognised
+@NO_Y_SCROLL2 set_a16
+GG_SCRL.658(686) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(690) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(729) : Error : Op-code not recognised
+@NO_Y_SCROLL3 set_a16
+GG_SCRL.658(759) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(765) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(854) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(858) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(878) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(881) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(888) : Error : Op-code not recognised
+CK_HERE set_axy16
+GG_SCRL.658(890) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(902) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(908) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(913) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(928) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(946) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(949) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(973) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(976) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1000) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(1003) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1032) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(1035) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1088) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(1103) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(1108) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1125) : Error : Op-code not recognised
+@MOVE_LEFT set_axy16
+GG_SCRL.658(1151) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(1161) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1266) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(1270) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1296) : Error : Op-code not recognised
+@MOVE_LEFT2 set_a16
+GG_SCRL.658(1340) : Error : Op-code not recognised
+ set_axy16
+GG_SCRL.658(1355) : Error : Op-code not recognised
+ set_a8
+GG_SCRL.658(1360) : Error : Op-code not recognised
+ set_a16
+GG_SCRL.658(1377) : Error : Op-code not recognised
+@MOVE_UP set_axy16
+
+Too many errors, assembler aborting...
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+64 error(s) from 1407 lines in 0.2 seconds

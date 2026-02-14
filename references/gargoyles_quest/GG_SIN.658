@@ -1,0 +1,220 @@
+;		Sin	Angle
+;----------------------------------------
+SIN_TABLE	DW	0	;0	
+	DW	4	;1	
+	DW	9	;2	
+	DW	13	;3	
+	DW	18	;4	
+	DW	22	;5	
+	DW	27	;6	
+	DW	31	;7	
+	DW	36	;8	
+	DW	40	;9	
+	DW	44	;10	
+	DW	49	;11	
+	DW	53	;12	
+	DW	58	;13	
+	DW	62	;14	
+	DW	66	;15	
+	DW	71	;16	
+	DW	75	;17	
+	DW	79	;18	
+	DW	83	;19	
+	DW	88	;20	
+	DW	92	;21	
+	DW	96	;22	
+	DW	100	;23	
+	DW	104	;24	
+	DW	108	;25	
+	DW	112	;26	
+	DW	116	;27	
+	DW	120	;28	
+	DW	124	;29	
+	DW	128	;30	
+	DW	132	;31	
+	DW	136	;32	
+	DW	139	;33	
+	DW	143	;34	
+	DW	147	;35	
+	DW	150	;36	
+	DW	154	;37	
+	DW	158	;38	
+	DW	161	;39	
+	DW	165	;40	
+	DW	168	;41	
+	DW	171	;42	
+	DW	175	;43	
+	DW	178	;44	
+	DW	181	;45	
+	DW	184	;46	
+	DW	187	;47	
+	DW	190	;48	
+	DW	193	;49	
+	DW	196	;50	
+	DW	199	;51	
+	DW	202	;52	
+	DW	204	;53	
+	DW	207	;54	
+	DW	210	;55	
+	DW	212	;56	
+	DW	215	;57	
+	DW	217	;58	
+	DW	219	;59	
+	DW	222	;60	
+	DW	224	;61	
+	DW	226	;62	
+	DW	228	;63	
+	DW	230	;64	
+	DW	232	;65	
+	DW	234	;66	
+	DW	236	;67	
+	DW	237	;68	
+	DW	239	;69	
+	DW	241	;70	
+	DW	242	;71	
+	DW	243	;72	
+	DW	245	;73	
+	DW	246	;74	
+	DW	247	;75	
+	DW	248	;76	
+	DW	249	;77	
+	DW	250	;78	
+	DW	251	;79	
+	DW	252	;80	
+	DW	253	;81	
+	DW	254	;82	
+	DW	254	;83	
+	DW	255	;84	
+	DW	255	;85	
+	DW	255	;86	
+	DW	256	;87	
+	DW	256	;88	
+	DW	256	;89	
+	DW	256	;90	
+
+;------------------
+;GET_SIN -- RETURN SIN VALUE FOR THE NUMBER IN ACC
+
+GET_SIN	MODULE
+
+	PHP
+	SET_AXY16
+;-----
+	CMP	#90
+	BGE	@QUAD2
+	ASL	A
+	TAX
+	LDA	SIN_TABLE,X	;GET VALUE
+	PLP
+	RTL
+;-----
+@QUAD2	CMP	#180
+	BGE	@QUAD3
+	SEC
+	SBC	#90
+	STA	TEMP_ACC
+	LDA	#90
+	SEC
+	SBC	TEMP_ACC
+	ASL	A
+	TAX
+	LDA	SIN_TABLE,X	;GET VALUE
+	PLP
+	RTL
+;-----
+@QUAD3	CMP	#270
+	BGE	@QUAD4
+	SEC
+	SBC	#180
+	ASL	A
+	TAX
+	LDA	#0
+	SEC
+	SBC	SIN_TABLE,X	;MAKE VALUE
+	PLP
+	RTL
+;-----
+@QUAD4	SEC
+	SBC	#270
+	STA	TEMP_ACC
+	LDA	#90
+	SEC
+	SBC	TEMP_ACC
+	ASL	A
+	TAX
+	LDA	#0
+	SEC
+	SBC	SIN_TABLE,X	;GET VALUE
+	PLP
+	RTL
+
+	MODEND
+
+;------------------
+;GET_COS -- RETURN COS VALUE FOR THE NUMBER IN ACC
+
+GET_COS	MODULE
+
+	PHP
+	SET_AXY16
+;-----
+	CMP	#90
+	BGE	@QUAD2
+	STA	TEMP_ACC
+	LDA	#90
+	SEC
+	SBC	TEMP_ACC
+	ASL	A
+	TAX
+	LDA	SIN_TABLE,X	;GET VALUE
+	PLP
+	RTL
+
+
+;-----
+@QUAD2	CMP	#180
+	BGE	@QUAD3
+	SEC
+	SBC	#90
+	ASL	A
+	TAX
+	LDA	#0
+	SEC
+	SBC	SIN_TABLE,X	;MAKE VALUE
+	PLP
+	RTL
+;-----
+@QUAD3	CMP	#270
+	BGE	@QUAD4
+	SEC
+	SBC	#180
+	STA	TEMP_ACC
+	LDA	#90
+	SEC
+	SBC	TEMP_ACC
+	ASL	A
+	TAX
+	LDA	#0
+	SEC
+	SBC	SIN_TABLE,X	;GET VALUE
+	PLP
+	RTL
+;-----
+@QUAD4	SEC
+	SBC	#270
+	ASL	A
+	TAX
+	LDA	SIN_TABLE,X	;GET VALUE
+	PLP
+	RTL
+
+	MODEND
+
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+

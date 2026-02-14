@@ -1,0 +1,22 @@
+
+Psy-Q 65816 version 1.13
+
+GG_PAL.658(14) : Error : Op-code not recognised
+ set_axy16
+GG_PAL.658(72) : Error : Op-code not recognised
+ set_a8
+GG_PAL.658(75) : Error : Op-code not recognised
+ set_a16
+GG_PAL.658(97) : Error : Op-code not recognised
+ set_a8
+GG_PAL.658(100) : Error : Op-code not recognised
+ set_a16
+GG_PAL.658(111) : Error : Op-code not recognised
+ set_axy16
+GG_PAL.658(136) : Error : Op-code not recognised
+ set_a8
+GG_PAL.658(137) : Error : Op-code not recognised
+ set_xy16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+8 error(s) from 198 lines in 0.0 seconds

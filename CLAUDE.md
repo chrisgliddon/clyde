@@ -20,6 +20,8 @@ Target: 65816 CPU @ 3.58MHz, 128KB RAM. Monorepo structure.
 - `knowledge` — verified facts, gotchas, patterns about 65816/SNES
 - `code_registry` — reusable routines with file paths, params, clobbers
 - `documentation` — index of all Hugo docs with quality ratings
+- `doc_chunks` — chunked doc content for RAG (heading-aware, SHA-256 hashed)
+- `vec_chunks` — sqlite-vec embeddings (nomic-embed-text, 768d) for KNN search
 - `project_meta` — architectural decisions, milestones, settings
 
 ## Monorepo Structure
@@ -27,8 +29,17 @@ src/          — 65816 Assembly source files
 assets/       — graphics, sprites, tilemaps, palettes
 audio/        — SPC700 music/sound data
 docs/         — Hugo site (reference documentation)
-tools/        — build scripts, utilities
-clyde.db      — project brain (SQLite)
+tools/        — build scripts, utilities (includes clyde-cli)
+references/   — SNES/arcade reference projects (gargoyles_quest, doom, nba_jam)
+clyde.db      — project brain (SQLite + sqlite-vec)
+
+## clyde CLI (tools/clyde-cli/)
+Go CLI for the project brain. Build: `CGO_ENABLED=1 go build -o clyde .`
+- `clyde status` — DB stats dashboard
+- `clyde index` — chunk docs, embed via Ollama, store vectors (incremental)
+- `clyde search <query>` — semantic KNN search across docs
+- `clyde knowledge` — extract SNES facts from doc content
+Requires Ollama running with `nomic-embed-text` model.
 
 ## Key References
 - https://ersanio.gitbook.io/assembly-for-the-snes

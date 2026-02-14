@@ -1,0 +1,56 @@
+
+Psy-Q 65816 version 1.13
+
+GG_OBJ.658(22) : Error : Op-code not recognised
+ set_axy16
+GG_OBJ.658(62) : Error : Op-code not recognised
+ set_a8
+GG_OBJ.658(65) : Error : Op-code not recognised
+ set_a16
+GG_OBJ.658(106) : Error : Op-code not recognised
+ set_a8
+GG_OBJ.658(109) : Error : Op-code not recognised
+ set_a16
+GG_OBJ.658(117) : Error : Op-code not recognised
+@RETURN set_axy16
+GG_OBJ.658(132) : Error : Op-code not recognised
+ set_axy16
+GG_OBJ.658(149) : Error : Op-code not recognised
+ set_axy16
+GG_OBJ.658(193) : Error : Op-code not recognised
+ set_a8
+GG_OBJ.658(196) : Error : Op-code not recognised
+ set_a16
+GG_OBJ.658(203) : Error : Op-code not recognised
+@RETURN set_axy16
+GG_OBJ.658(219) : Error : Op-code not recognised
+ set_axy8
+GG_OBJ.658(230) : Error : Op-code not recognised
+ set_axy16
+GG_OBJ.658(235) : Error : Op-code not recognised
+ set_a8
+GG_OBJ.658(238) : Error : Op-code not recognised
+ set_xy8
+GG_OBJ.658(267) : Error : Op-code not recognised
+ set_axy16
+GG_OBJ.658(310) : Error : Op-code not recognised
+ set_a8
+GG_OBJ.658(313) : Error : Op-code not recognised
+ set_a16
+GG_OBJ.658(327) : Error : Op-code not recognised
+ set_a16
+GG_OBJ.658(358) : Error : Illegal value (32768)
+@MOVED_IN_Y bit #$8000
+GG_OBJ.658(374) : Error : Illegal value (336)
+ adc #21*16
+GG_OBJ.658(388) : Error : Illegal value (1023)
+ and #$03FF
+GG_OBJ.658(395) : Error : Op-code not recognised
+ set_a8
+GG_OBJ.658(398) : Error : Op-code not recognised
+ set_a16
+GG_OBJ.658(411) : Error : Op-code not recognised
+ set_a16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+25 error(s) from 493 lines in 0.1 seconds

@@ -1,0 +1,156 @@
+;------------------
+;
+;GG_TEXT.658
+;
+;  TEXT HANDLING ROUTINES
+;
+;
+;------------------
+
+;	SECTION	GG_CODE,?
+
+;------------------
+;EQUATES
+
+
+MSG1	DB	'THIS IS A TEST MESSAGE',13
+	DB	'!"#$%&''()*+,-./',13
+	DB	'0123456789:;<=>?@',13
+	DB	'ABCDEFGHIJKLMNOPQRSTUV',13
+	DB	'WXYZ[\]^_`abcdefghijkl',13
+	DB	'mnopqrstuvwxyz{|}~',0
+
+;------------------
+;TEST_TEXT -- 
+
+TEST_TEXT	MODULE
+
+	PHP
+;-----
+	SET_A16
+	LDA	#$00	;0C00
+	STA	TEXT_PAL
+	LDA	#0	;706
+	STA	CHAR_BASE
+	LDA	#<MSG1
+	STA	TEXT_ADDR
+	SET_A8
+	LDA	#^MSG1
+	STA	TEXT_ADDR+2
+	SET_A16
+	LDX	#5
+	LDY	#12
+	JSL	PRINT_TEXT
+	LDA	SCRN_PTR
+	PHA
+	LDY	#0	;SCREEN OFFSET
+	LDA	#0
+	STA	SCRN_PTR
+	JSR	DMA_SCRN
+	PLA
+	STA	SCRN_PTR
+;-----
+	PLP
+	RTL
+
+	MODEND
+
+;------------------
+;PRINT_TEXT -- PRINT OUT A TEXT STRING TO SCRN_BUF
+;
+;	X - SCRN X
+;	Y - SCRN Y 
+;
+;	ADDRESS OF TEXT STRING IS IN TEXT_ADDR.
+;	NEED TO SET TEXT_PAL.
+;	NEED TO SET CHAR_BASE BEFORE USING FOR FIRST TIME.
+
+PRINT_TEXT	MODULE
+
+	PHP
+	PHB
+	SET_A8
+	LDA	#^SCRN_BUF	;GET PAGE OF SCRN_BUF
+	PHA
+	PLB		;SET DATA BANK TO IT
+	SET_AXY16
+;-----
+	TYA		;GET SCRN Y
+	ASL	A
+	ASL	A
+	ASL	A
+	ASL	A
+	ASL	A
+	ASL	A	;Y x 32 x 2
+	STA	TEXT_PTR
+	CLC
+	TXA
+	ASL	A
+	ADC	TEXT_PTR
+	STA	TEXT_PTR
+	TAX		;SET DEST POINTER
+;-----
+	LDY	#0
+	SET_A8
+@LOOP1	LDA	[TEXT_ADDR],Y	;GET NEXT CHARACTER
+	INY
+	CMP	#0	;END OF TEXT ?
+	BEQ	@TEXT_END
+	CMP	#13	;CARRIAGE RETURN ?
+	BEQ	@DO_RETURN
+	JSR	CHAR_8X8	;PRINT THE CHARACTER
+	JMP	@LOOP1
+;-----
+@DO_RETURN	SET_A16
+	LDA	TEXT_PTR	;GET START OF THIS ROW
+	CLC
+	ADC	#32*2	;NEXT ROW
+	STA	TEXT_PTR
+	TAX
+	SET_A8
+	JMP	@LOOP1
+;-----
+@TEXT_END:
+	PLB
+	PLP
+	RTL
+
+	MODEND
+
+;------------------
+;CHAR_8X8 -- DRAW AN 8X8 CHAR
+;
+;	ACC 	- CHAR #
+;	X	- DEST OFFSET
+
+CHAR_8X8	MODULE
+
+	PHP
+	SEC
+	SBC	#32	;ADJUST TO 0
+	SET_A16
+	AND	#$00FF	;CLEAR HIGH BYTE
+	CLC
+	ADC	CHAR_BASE	;ADD FIRST CHAR # FOR TEXT
+	ORA	TEXT_PAL	;ADD IN PAL FLIP AND PRIORITY
+	STA	SCRN_BUF,X	;PRINT THE CHAR
+	INX
+	INX		;NEXT CHAR
+	PLP
+	RTS
+
+	MODEND
+
+;------------------
+;------------------
+;------------------
+
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+;------------------
+

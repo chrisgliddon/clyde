@@ -1,0 +1,46 @@
+
+Psy-Q 65816 version 1.13
+
+GG_MAPS.658(8) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(11) : Error : Op-code not recognised
+ set_axy16
+GG_MAPS.658(16) : Error : Op-code not recognised
+@CLR_LP set_a8
+GG_MAPS.658(22) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(54) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(59) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(64) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(69) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(75) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(80) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(85) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(90) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(122) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(127) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(132) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(137) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(143) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(148) : Error : Op-code not recognised
+ set_a16
+GG_MAPS.658(153) : Error : Op-code not recognised
+ set_a8
+GG_MAPS.658(158) : Error : Op-code not recognised
+ set_a16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+20 error(s) from 209 lines in 0.0 seconds

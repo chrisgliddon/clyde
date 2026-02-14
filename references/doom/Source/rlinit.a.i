@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	345
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'rlinit.a 1.345'
+	ENDM
+VSTRING	MACRO
+		dc.b	'rlinit.a 1.345 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: rlinit.a 1.345 (19.11.95)',0
+	ENDM

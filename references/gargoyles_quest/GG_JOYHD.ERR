@@ -1,0 +1,54 @@
+
+Psy-Q 65816 version 1.13
+
+GG_JOYHD.658(35) : Error : Op-code not recognised
+TITLE_JPL jp_test JOY_START,TITLE_EXIT
+GG_JOYHD.658(36) : Error : Op-code not recognised
+ jp_test JOY_UP,PREV_LVL
+GG_JOYHD.658(37) : Error : Op-code not recognised
+ jp_test JOY_DOWN,NEXT_LVL
+GG_JOYHD.658(38) : Error : Op-code not recognised
+ jp_end
+GG_JOYHD.658(40) : Error : Op-code not recognised
+LVL1_JPL jp_test JOY_START,LVL1_EXIT
+GG_JOYHD.658(41) : Error : Op-code not recognised
+ jp_end
+GG_JOYHD.658(43) : Error : Op-code not recognised
+LVL2_JPL jp_test JOY_START,LVL2_EXIT
+GG_JOYHD.658(44) : Error : Op-code not recognised
+ jp_end
+GG_JOYHD.658(46) : Error : Op-code not recognised
+MODE7_JPL jp_test JOY_START,LVL1_EXIT
+GG_JOYHD.658(47) : Error : Op-code not recognised
+ jp_test JOY_BBUTT,M7_SPIN
+GG_JOYHD.658(48) : Error : Op-code not recognised
+ jp_test JOY_UP,M7_UP
+GG_JOYHD.658(49) : Error : Op-code not recognised
+ jp_test JOY_DOWN,M7_DOWN
+GG_JOYHD.658(50) : Error : Op-code not recognised
+ jp_test JOY_LEFT,M7_LEFT
+GG_JOYHD.658(51) : Error : Op-code not recognised
+ jp_test JOY_RIGHT,M7_RIGHT
+GG_JOYHD.658(52) : Error : Op-code not recognised
+ jp_end
+GG_JOYHD.658(63) : Error : Op-code not recognised
+ set_a8
+GG_JOYHD.658(64) : Error : Op-code not recognised
+ set_xy16
+GG_JOYHD.658(69) : Error : Op-code not recognised
+ set_a16
+GG_JOYHD.658(89) : Error : Op-code not recognised
+ set_a8
+GG_JOYHD.658(92) : Error : Op-code not recognised
+ set_a16
+GG_JOYHD.658(120) : Error : Op-code not recognised
+ set_axy16
+GG_JOYHD.658(123) : Error : Op-code not recognised
+ set_a8
+GG_JOYHD.658(132) : Error : Op-code not recognised
+ set_a16
+GG_JOYHD.658(162) : Error : Op-code not recognised
+ set_axy16
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+24 error(s) from 273 lines in 0.1 seconds

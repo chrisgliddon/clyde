@@ -1,0 +1,20 @@
+
+Psy-Q 65816 version 1.13
+
+GG_RAM.658(23) : Error : Op-code not recognised
+ set_axy16
+GG_RAM.658(43) : Error : Op-code not recognised
+ set_a8
+GG_RAM.658(47) : Error : Op-code not recognised
+ set_a16
+GG_RAM.658(52) : Error : Op-code not recognised
+ set_a8
+GG_RAM.658(58) : Error : Op-code not recognised
+NO_RAM set_a16
+GG_RAM.658(91) : Error : Op-code not recognised
+ set_axy16
+GG_RAM.658(101) : Error : Op-code not recognised
+ set_a8
+Errors during pass 1 - pass 2 aborted
+Assembly completed.
+7 error(s) from 149 lines in 0.1 seconds

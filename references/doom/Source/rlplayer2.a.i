@@ -1,0 +1,14 @@
+VERSION		EQU	1
+REVISION	EQU	128
+DATE	MACRO
+		dc.b	'19.11.95'
+	ENDM
+VERS	MACRO
+		dc.b	'rlplayer2.a 1.128'
+	ENDM
+VSTRING	MACRO
+		dc.b	'rlplayer2.a 1.128 (19.11.95)',13,10,0
+	ENDM
+VERSTAG	MACRO
+		dc.b	0,'$VER: rlplayer2.a 1.128 (19.11.95)',0
+	ENDM
