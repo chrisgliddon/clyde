@@ -534,34 +534,60 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
 
     pla                     ; A = tile type
 
-    ; --- Write 2x2 tile block ---
+    ; --- Look up palette attribute for this tile ---
+    phx                     ; Save tilemap offset (16-bit)
+    SET_XY8
+    tax                     ; X = tile type (8-bit index)
+    lda TilePalette,x       ; A = palette attribute byte
+    sta OW_TempB            ; Save attribute in ZP
+    txa                     ; A = tile type again
+    SET_XY16
+    plx                     ; Restore tilemap offset (16-bit)
+
+    ; --- Write 2x2 tile block with palette attribute ---
     sta TilemapBuffer,x
-    stz TilemapBuffer+1,x
+    lda OW_TempB
+    sta TilemapBuffer+1,x
+    lda TilemapBuffer,x     ; Re-read tile type from buffer
     sta TilemapBuffer+2,x
-    stz TilemapBuffer+3,x
-    sta TilemapBuffer+64,x  ; next row = +32 words = +64 bytes
-    stz TilemapBuffer+65,x
+    lda OW_TempB
+    sta TilemapBuffer+3,x
+    lda TilemapBuffer,x
+    sta TilemapBuffer+64,x
+    lda OW_TempB
+    sta TilemapBuffer+65,x
+    lda TilemapBuffer,x
     sta TilemapBuffer+66,x
-    stz TilemapBuffer+67,x
+    lda OW_TempB
+    sta TilemapBuffer+67,x
 
     ; --- Next cell ---
     inc OW_TempA
     lda OW_TempA
     cmp #$09
-    bcc @cell_loop
+    bcs :+
+    jmp @cell_loop
+:
 
-    ; --- Player crosshair at center cell ---
+    ; --- Player crosshair at center cell (red = palette 5, attr $14) ---
     SET_XY16
     ldx #734                ; cell 4 tilemap offset
     lda #TILE_PLAYER
     sta TilemapBuffer,x
-    stz TilemapBuffer+1,x
+    lda #$14                ; Palette 5 (red)
+    sta TilemapBuffer+1,x
+    lda #TILE_PLAYER
     sta TilemapBuffer+2,x
-    stz TilemapBuffer+3,x
+    lda #$14
+    sta TilemapBuffer+3,x
+    lda #TILE_PLAYER
     sta TilemapBuffer+64,x
-    stz TilemapBuffer+65,x
+    lda #$14
+    sta TilemapBuffer+65,x
+    lda #TILE_PLAYER
     sta TilemapBuffer+66,x
-    stz TilemapBuffer+67,x
+    lda #$14
+    sta TilemapBuffer+67,x
 
     rts
 .endproc
@@ -571,6 +597,12 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
 ; ============================================================================
 
 .segment "RODATA"
+
+; Tile palette attribute table — BG1 palette index shifted into attr bits 10-12
+; Index by overworld tile type (0-7)
+; Palette: 0=white, 1=green, 2=blue, 3=brown, 4=yellow, 5=red
+;            grass  mount  water  town   castle dungeon forest player
+TilePalette: .byte $04,   $0C,   $08,   $10,   $10,   $14,   $04,   $14
 
 ; 3x3 cell layout: dy/dx offsets from player position
 CellDY: .byte $FF, $FF, $FF, $00, $00, $00, $01, $01, $01

@@ -29,8 +29,8 @@
 ; ============================================================================
 
 ; BG3 tilemap entry: tile_number | (palette << 10)
-; Palette 1 for font colors → high byte bit 2 set = $04
-FONT_ATTR       = $04       ; High byte: palette 1
+; FontAttr ZP variable: palette attribute byte for text rendering
+; $04=white(pal1), $08=green(pal2), $0C=yellow(pal3), $10=cyan(pal4), $14=red(pal5), $18=gold(pal6)
 
 MSG_ROW         = 26        ; Tilemap row for messages (near bottom)
 STATS_ROW       = 0         ; Tilemap row for stats bar
@@ -47,6 +47,7 @@ RDMPYH          = $4217     ; Remainder high
 
 .segment "ZEROPAGE"
 StatsDirty:     .res 1
+FontAttr:       .res 1      ; Current BG3 text palette attribute
 UI_TempA:       .res 1
 UI_TempB:       .res 1
 UI_TempPtr:     .res 2      ; Pointer to string for PrintString
@@ -83,6 +84,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
     cpx #2048
     bne @clear
     SET_A8
+    lda #$04                ; Default font: white (BG3 palette 1)
+    sta FontAttr
     lda #$01
     sta StatsDirty
     rts
@@ -131,7 +134,7 @@ MsgBuf:         .res 32     ; Composed message text buffer
     sec
     sbc #$20                ; ASCII $20 → tile 0
     sta Bg3Tilemap,x        ; Tile number
-    lda #FONT_ATTR
+    lda FontAttr
     sta Bg3Tilemap+1,x      ; Palette/priority
     inx
     inx
@@ -234,6 +237,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiDrawStats
     SET_AXY8                ; Callers may have 16-bit XY; ensure 8-bit for ldx/ldy immediates
+    lda #$04                ; White (BG3 palette 1)
+    sta FontAttr
 
     lda StatsDirty
     beq @done
@@ -377,6 +382,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowShop
     SET_AXY8
+    lda #$08                ; Green (BG3 palette 2)
+    sta FontAttr
     jsr UiClearBg3
 
     ; Title
@@ -546,6 +553,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowCastle
     SET_AXY8
+    lda #$0C                ; Yellow (BG3 palette 3)
+    sta FontAttr
     jsr UiClearBg3
 
     ; Title
@@ -687,6 +696,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowGameOver
     SET_AXY8
+    lda #$14                ; Red (BG3 palette 5)
+    sta FontAttr
     jsr UiClearBg3
 
     lda #<str_go_mourn
@@ -723,6 +734,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowVictory
     SET_AXY8
+    lda #$18                ; Gold (BG3 palette 6)
+    sta FontAttr
     jsr UiClearBg3
 
     lda #<str_vic_line1
@@ -767,6 +780,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowChargenSeed
     SET_AXY8
+    lda #$10                ; Cyan (BG3 palette 4)
+    sta FontAttr
     jsr UiClearBg3
 
     lda #<str_cg_lucky
@@ -828,6 +843,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowChargenStats
     SET_AXY8
+    lda #$10                ; Cyan (BG3 palette 4)
+    sta FontAttr
     jsr UiClearBg3
 
     ; HIT POINTS
@@ -949,6 +966,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowChargenClass
     SET_AXY8
+    lda #$10                ; Cyan (BG3 palette 4)
+    sta FontAttr
     jsr UiClearBg3
 
     lda #<str_cg_class_q
@@ -1149,6 +1168,8 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; UiMsgShow — null-terminate MsgBuf, clear row 26, print, set timer
 .proc UiMsgShow
     SET_AXY8
+    lda #$04                ; White (BG3 palette 1) for messages
+    sta FontAttr
     ldx MsgBufPos
     stz MsgBuf,x            ; Null-terminate
 

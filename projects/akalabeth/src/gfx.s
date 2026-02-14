@@ -162,6 +162,77 @@ DAS1H       = $4316
     stz CGDATA
     stz CGDATA
 
+    ; --- BG3 colored palettes for UI text ---
+    ; BG3 pal 2 (colors 8-11): color 9 = Green (shop)
+    lda #$08
+    sta CGADD
+    stz CGDATA
+    stz CGDATA              ; 8: transparent
+    lda #$E0
+    sta CGDATA
+    lda #$03
+    sta CGDATA              ; 9: Green $03E0
+    stz CGDATA
+    stz CGDATA              ; 10: black
+    stz CGDATA
+    stz CGDATA              ; 11: black
+
+    ; BG3 pal 3 (colors 12-15): color 13 = Yellow (castle)
+    lda #$0C
+    sta CGADD
+    stz CGDATA
+    stz CGDATA              ; 12: transparent
+    lda #$FF
+    sta CGDATA
+    lda #$03
+    sta CGDATA              ; 13: Yellow $03FF
+    stz CGDATA
+    stz CGDATA              ; 14: black
+    stz CGDATA
+    stz CGDATA              ; 15: black
+
+    ; BG3 pal 4 (colors 16-19): color 17 = Cyan (chargen)
+    lda #$10
+    sta CGADD
+    stz CGDATA
+    stz CGDATA              ; 16: transparent
+    lda #$E0
+    sta CGDATA
+    lda #$7F
+    sta CGDATA              ; 17: Cyan $7FE0
+    stz CGDATA
+    stz CGDATA              ; 18: black
+    stz CGDATA
+    stz CGDATA              ; 19: black
+
+    ; BG3 pal 5 (colors 20-23): color 21 = Red (game over)
+    lda #$14
+    sta CGADD
+    stz CGDATA
+    stz CGDATA              ; 20: transparent
+    lda #$1F
+    sta CGDATA
+    lda #$00
+    sta CGDATA              ; 21: Red $001F
+    stz CGDATA
+    stz CGDATA              ; 22: black
+    stz CGDATA
+    stz CGDATA              ; 23: black
+
+    ; BG3 pal 6 (colors 24-27): color 25 = Gold (victory)
+    lda #$18
+    sta CGADD
+    stz CGDATA
+    stz CGDATA              ; 24: transparent
+    lda #$BF
+    sta CGDATA
+    lda #$02
+    sta CGDATA              ; 25: Gold $02BF
+    stz CGDATA
+    stz CGDATA              ; 26: black
+    stz CGDATA
+    stz CGDATA              ; 27: black
+
     rts
 .endproc
 
@@ -290,24 +361,55 @@ OVERWORLD_TILES_SIZE = * - OverworldTiles ; 256 bytes (8 tiles × 32)
 ; ----------------------------------------------------------------------------
 
 OverworldPalette:
+    ; Palette 0: White (unused fallback)
     .word $0000             ; 0: Black (transparent)
-    .word $0000             ; 1: Black
-    .word $0000             ; 2: Black
-    .word $0000             ; 3: Black
-    .word $0000             ; 4: Black (BG3 pal 1 color 0, transparent)
-    .word $7FFF             ; 5: White (BG3 font color — pal 1 color 1)
-    .word $0000             ; 6: Black
-    .word $0000             ; 7: Black
-    .word $0000             ; 8: Black
-    .word $0000             ; 9: Black
-    .word $0000             ; 10: Black
-    .word $0000             ; 11: Black
-    .word $0000             ; 12: Black
-    .word $0000             ; 13: Black
-    .word $0000             ; 14: Black
-    .word $7FFF             ; 15: White (wireframe tiles)
+    .word $0000, $0000, $0000
+    .word $0000             ; 4: Black (BG3 pal 1 color 0)
+    .word $7FFF             ; 5: White (BG3 font — must stay white in all pals)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $7FFF             ; 15: White
 
-OVERWORLD_PAL_SIZE = * - OverworldPalette ; 32 bytes
+    ; Palette 1: Green (grass, forest)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $03E0             ; 15: Green
+
+    ; Palette 2: Blue (water)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $7C00             ; 15: Blue
+
+    ; Palette 3: Brown (mountain)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0193             ; 15: Brown
+
+    ; Palette 4: Yellow (town, castle)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $03FF             ; 15: Yellow
+
+    ; Palette 5: Red (dungeon, player)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $001F             ; 15: Red
+
+OVERWORLD_PAL_SIZE = * - OverworldPalette ; 192 bytes (6 palettes × 32)
 
 ; ----------------------------------------------------------------------------
 ; Font tiles — 2bpp, 8x8 pixels, 16 bytes each
@@ -639,21 +741,36 @@ DUNGEON_TILES_SIZE = * - DungeonTiles
 ; ----------------------------------------------------------------------------
 
 DungeonPalette:
+    ; Palette 0: White (walls, floor, empty)
     .word $0000             ; 0: Black (transparent)
-    .word $0000             ; 1: Black
-    .word $0000             ; 2: Black
-    .word $0000             ; 3: Black
-    .word $0000             ; 4: Black (BG3 pal 1 color 0, transparent)
-    .word $7FFF             ; 5: White (BG3 font color — pal 1 color 1)
-    .word $0000             ; 6: Black
-    .word $0000             ; 7: Black
-    .word $0000             ; 8: Black
-    .word $0000             ; 9: Black
-    .word $0000             ; 10: Black
-    .word $0000             ; 11: Black
-    .word $0000             ; 12: Black
-    .word $0000             ; 13: Black
-    .word $0000             ; 14: Black
-    .word $7FFF             ; 15: White (wireframe tiles)
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $7FFF             ; 15: White
 
-DUNGEON_PAL_SIZE = * - DungeonPalette ; 32 bytes
+    ; Palette 1: Brown (doors)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0193             ; 15: Brown
+
+    ; Palette 2: Yellow (stairs, chests)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $03FF             ; 15: Yellow
+
+    ; Palette 3: Red (monsters)
+    .word $0000
+    .word $0000, $0000, $0000
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $001F             ; 15: Red
+
+DUNGEON_PAL_SIZE = * - DungeonPalette ; 128 bytes (4 palettes × 32)

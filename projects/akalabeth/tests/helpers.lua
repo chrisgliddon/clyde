@@ -8,7 +8,7 @@ local passCount = 0
 local testName = "unknown"
 local co = nil
 local frameCount = 0
-local MAX_FRAMES = 3600  -- 60 seconds timeout
+local MAX_FRAMES = 3600  -- 60 seconds timeout (override via H.setMaxFrames)
 
 -- SNES debug memory type (no side effects)
 local MEM = emu.memType.snesDebug
@@ -22,6 +22,10 @@ function H.init(name)
     failCount = 0
     passCount = 0
     print("=== " .. name .. " ===")
+end
+
+function H.setMaxFrames(n)
+    MAX_FRAMES = n
 end
 
 function H.readByte(addr)

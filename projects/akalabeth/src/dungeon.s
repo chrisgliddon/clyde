@@ -4,7 +4,7 @@
 .include "macros.s"
 
 .export DungeonInit, DungeonUpdate, DungeonRender
-.export DungeonGrid
+.export DungeonGrid, MonAlive, MonX, MonY, MonHP, MonType
 .exportzp DungPlayerX, DungPlayerY, DungFloor, DungFacing
 
 .importzp JoyPress, GameState, MapDirty
@@ -2045,7 +2045,18 @@ MonType:        .res MAX_MONSTERS
     SET_A8
     pla                     ; Restore tile
     sta TilemapBuffer,x
-    stz TilemapBuffer+1,x
+    ; Look up palette attribute for this dungeon tile
+    pha                     ; Save tile again
+    phx                     ; Save tilemap offset (16-bit)
+    SET_XY8
+    tax                     ; X = tile index
+    lda DungTilePalette,x   ; A = palette attribute
+    sta DG_Offset           ; Temp store
+    SET_XY16
+    plx                     ; Restore tilemap offset
+    lda DG_Offset
+    sta TilemapBuffer+1,x
+    pla                     ; Balance stack (tile)
     plx                     ; Restore col
     rts
 .endproc
@@ -2352,3 +2363,19 @@ MonType:        .res MAX_MONSTERS
     bne @row
     rts
 .endproc
+
+; ============================================================================
+; RODATA
+; ============================================================================
+
+.segment "RODATA"
+
+; Dungeon tile palette attributes — indexed by tile number ($00-$11)
+; Palette: 0=white($00), 1=brown($04), 2=yellow($08), 3=red($0C)
+DungTilePalette:
+    ;       floor  wall   wallhi door   flpat  stairs chest  wedge
+    .byte   $00,   $00,   $00,   $04,   $00,   $08,   $08,   $00
+    ;       skele  thief  rat    orc    viper  carrion gremln mimic
+    .byte   $0C,   $0C,   $0C,   $0C,   $0C,   $0C,   $0C,   $0C
+    ;       daemon balrog
+    .byte   $0C,   $0C
