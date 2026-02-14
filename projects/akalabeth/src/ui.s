@@ -8,9 +8,10 @@
 .export Bg3Tilemap
 .exportzp StatsDirty
 
-.importzp PlayerHP, PlayerFood, PlayerGold, PlayerWeapon, PlayerQuest
+.importzp PlayerHP, PlayerFood, PlayerGold, PlayerQuest
+.importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 .importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS
-.importzp PlayerClass, DiffLevel, ChargenSeed
+.importzp PlayerClass, DiffLevel, ChargenSeed, ShopCursor
 .import GfxUploadFont
 
 ; ============================================================================
@@ -362,48 +363,145 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
 ; ============================================================================
 .proc UiShowShop
     SET_A8
-
-    ; Only redraw if entering (check a flag or just always draw — simple approach)
     jsr UiClearBg3
 
+    ; Title
     lda #<str_shop_title
     sta UI_TempPtr
     lda #>str_shop_title
     sta UI_TempPtr+1
-    ldx #$06
-    ldy #$04
-    jsr PrintString
-
-    lda #<str_shop_food
-    sta UI_TempPtr
-    lda #>str_shop_food
-    sta UI_TempPtr+1
     ldx #$04
-    ldy #$08
+    ldy #$01
     jsr PrintString
 
-    lda #<str_shop_a_buy
+    ; Column headers: PRICE  DMG  ITEM        OWN
+    lda #<str_shop_hdr
     sta UI_TempPtr
-    lda #>str_shop_a_buy
+    lda #>str_shop_hdr
     sta UI_TempPtr+1
-    ldx #$04
-    ldy #$0C
+    ldx #$02
+    ldy #$03
     jsr PrintString
 
-    lda #<str_shop_b_leave
+    ; Item rows (starting at row 5, col 2)
+    ; Row 0: 1/10  ---  FOOD          nnn
+    lda #<str_si_food
     sta UI_TempPtr
-    lda #>str_shop_b_leave
+    lda #>str_si_food
     sta UI_TempPtr+1
-    ldx #$04
-    ldy #$0E
+    ldx #$02
+    ldy #$05
     jsr PrintString
 
-    ; Show gold
+    ; Row 1: 8     1-10 RAPIER        n
+    lda #<str_si_rapier
+    sta UI_TempPtr
+    lda #>str_si_rapier
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$07
+    jsr PrintString
+
+    ; Row 2: 5     1-5  AXE           n
+    lda #<str_si_axe
+    sta UI_TempPtr
+    lda #>str_si_axe
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$09
+    jsr PrintString
+
+    ; Row 3: 6     1    SHIELD        n
+    lda #<str_si_shield
+    sta UI_TempPtr
+    lda #>str_si_shield
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$0B
+    jsr PrintString
+
+    ; Row 4: 3     1-4  BOW           n
+    lda #<str_si_bow
+    sta UI_TempPtr
+    lda #>str_si_bow
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$0D
+    jsr PrintString
+
+    ; Row 5: 15    ???  MAGIC AMULET  n
+    lda #<str_si_amulet
+    sta UI_TempPtr
+    lda #>str_si_amulet
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$0F
+    jsr PrintString
+
+    ; Show owned counts at col 26
+    SET_A16
+    lda PlayerFood
+    sta UI_DivQuot
+    SET_A8
+    ldx #$1A
+    ldy #$05
+    jsr PrintNum16
+
+    lda PlayerRapier
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$1A
+    ldy #$07
+    jsr PrintNum16
+
+    lda PlayerAxe
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$1A
+    ldy #$09
+    jsr PrintNum16
+
+    lda PlayerShield
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$1A
+    ldy #$0B
+    jsr PrintNum16
+
+    lda PlayerBow
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$1A
+    ldy #$0D
+    jsr PrintNum16
+
+    lda PlayerAmulet
+    sta UI_DivQuot
+    stz UI_DivQuot+1
+    ldx #$1A
+    ldy #$0F
+    jsr PrintNum16
+
+    ; Draw cursor ">" at selected row
+    ; Cursor row = ShopCursor * 2 + 5
+    lda ShopCursor
+    asl
+    clc
+    adc #$05
+    tay
+    ldx #$01
+    lda #<str_cursor
+    sta UI_TempPtr
+    lda #>str_cursor
+    sta UI_TempPtr+1
+    jsr PrintString
+
+    ; Gold at bottom
     lda #<str_gp
     sta UI_TempPtr
     lda #>str_gp
     sta UI_TempPtr+1
-    ldx #$04
+    ldx #$02
     ldy #$12
     jsr PrintString
 
@@ -411,9 +509,18 @@ NumBuf:         .res 6      ; Decimal conversion buffer (5 digits + null)
     lda PlayerGold
     sta UI_DivQuot
     SET_A8
-    ldx #$07
+    ldx #$05
     ldy #$12
     jsr PrintNum16
+
+    ; Controls hint
+    lda #<str_shop_ctrl
+    sta UI_TempPtr
+    lda #>str_shop_ctrl
+    sta UI_TempPtr+1
+    ldx #$02
+    ldy #$14
+    jsr PrintString
 
     lda #$01
     sta StatsDirty
@@ -758,13 +865,25 @@ str_press_start:
     .byte "PRESS START", $00
 
 str_shop_title:
-    .byte "--- SHOPPE ---", $00
-str_shop_food:
-    .byte "FOOD: 10 PER GOLD", $00
-str_shop_a_buy:
-    .byte "A: BUY FOOD", $00
-str_shop_b_leave:
-    .byte "B: LEAVE", $00
+    .byte "--- ADVENTURE SHOPPE ---", $00
+str_shop_hdr:
+    .byte "PRICE DMG  ITEM", $00
+str_si_food:
+    .byte "1/10  ---  FOOD", $00
+str_si_rapier:
+    .byte "8     1-10 RAPIER", $00
+str_si_axe:
+    .byte "5     1-5  AXE", $00
+str_si_shield:
+    .byte "6     1    SHIELD", $00
+str_si_bow:
+    .byte "3     1-4  BOW & ARROWS", $00
+str_si_amulet:
+    .byte "15    ???  MAGIC AMULET", $00
+str_shop_ctrl:
+    .byte "A:BUY  B:LEAVE", $00
+str_cursor:
+    .byte ">", $00
 
 str_castle_title:
     .byte "--- LORD BRITISH ---", $00

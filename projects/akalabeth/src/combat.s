@@ -4,7 +4,8 @@
 .include "macros.s"
 
 .export CombatInit, CombatUpdate, RollStats, SeedPrng
-.exportzp PlayerHP, PlayerFood, PlayerGold, PlayerWeapon
+.exportzp PlayerHP, PlayerFood, PlayerGold
+.exportzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 .exportzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS, PlayerQuest
 .exportzp PlayerClass, DiffLevel
 
@@ -59,7 +60,11 @@ PlayerWIS:      .res 1
 PlayerHP:       .res 2
 PlayerFood:     .res 2
 PlayerGold:     .res 2
-PlayerWeapon:   .res 1
+PlayerRapier:   .res 1      ; Rapier count
+PlayerAxe:      .res 1      ; Axe count
+PlayerShield:   .res 1      ; Shield count
+PlayerBow:      .res 1      ; Bow & arrows count
+PlayerAmulet:   .res 1      ; Magic amulet count
 PlayerQuest:    .res 1      ; Current quest monster (0-9), bit 7 = completed
 
 PlayerClass:    .res 1      ; 0=Fighter, 1=Mage
@@ -114,8 +119,12 @@ MonsterNames:
     SET_A16
     stz PlayerFood          ; No food — must buy in town
     SET_A8
-    lda #WEAPON_RAPIER
-    sta PlayerWeapon
+    lda #$01
+    sta PlayerRapier        ; Start with one rapier
+    stz PlayerAxe
+    stz PlayerShield
+    stz PlayerBow
+    stz PlayerAmulet
     stz PlayerQuest
     rts
 .endproc
@@ -232,8 +241,9 @@ MonsterNames:
     cmp #CSTATE_PLAYER
     beq @player_turn
     cmp #CSTATE_ENEMY
-    beq @enemy_turn
-    cmp #CSTATE_WON
+    bne :+
+    jmp @enemy_turn
+:   cmp #CSTATE_WON
     bne :+
     jmp @victory
 :   ; CSTATE_LOST or unknown
@@ -267,12 +277,37 @@ MonsterNames:
     bcc @miss               ; DEX*8 < random → miss
 
     ; Hit! Damage = RNG(weapon_damage) + STR/4
+    ; Use best available weapon: rapier(10) > axe(5) > bow(4) > shield(1) > hands(0)
     jsr PrngByte
-    pha                     ; Save random
-    SET_XY8
-    ldx PlayerWeapon
-    pla
-    and WeaponDamage,x      ; Mask by weapon damage
+    sta CB_TempA            ; Save random
+    lda PlayerRapier
+    bne @use_rapier
+    lda PlayerAxe
+    bne @use_axe
+    lda PlayerBow
+    bne @use_bow
+    lda PlayerShield
+    bne @use_shield
+    ; Bare hands — 0 mask = 0 damage
+    lda CB_TempA
+    and #$00                ; 0 damage from hands
+    jmp @got_dmg
+@use_rapier:
+    lda CB_TempA
+    and #$0F                ; 0-15 (rapier: strong melee)
+    jmp @got_dmg
+@use_axe:
+    lda CB_TempA
+    and #$07                ; 0-7
+    jmp @got_dmg
+@use_bow:
+    lda CB_TempA
+    and #$03                ; 0-3
+    jmp @got_dmg
+@use_shield:
+    lda CB_TempA
+    and #$01                ; 0-1
+@got_dmg:
     SET_XY16
     clc
     adc #$01                ; At least 1 damage

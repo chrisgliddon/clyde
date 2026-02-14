@@ -7,7 +7,7 @@
 .export TilemapBuffer
 .exportzp PlayerX, PlayerY, MapDirty
 
-.importzp JoyPress, GameState
+.importzp JoyPress, GameState, ShopCursor
 .importzp PlayerFood, PlayerHP
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT
 .import DungeonInit
@@ -305,6 +305,7 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     sta GameState
     rts
 @enter_town:
+    stz ShopCursor
     lda #STATE_SHOP
     sta GameState
     rts

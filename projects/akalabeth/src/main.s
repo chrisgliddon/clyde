@@ -21,6 +21,7 @@
 .importzp PlayerHP, PlayerFood, PlayerGold, PlayerQuest
 .importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS
 .importzp PlayerClass, DiffLevel
+.importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 
 ; Production lib
 .import NmiHandler, IrqHandler
@@ -35,7 +36,7 @@
 ; ============================================================================
 
 .export ResetHandler
-.exportzp GameState, ChargenSeed
+.exportzp GameState, ChargenSeed, ShopCursor
 
 .include "header.inc"
 
@@ -46,6 +47,7 @@
 .segment "ZEROPAGE"
 GameState:      .res 1
 ChargenSeed:    .res 2          ; Lucky number (auto-increments)
+ShopCursor:     .res 1          ; 0-5: selected item in shop
 
 ; ============================================================================
 ; Constants
@@ -362,9 +364,30 @@ STATE_CHARGEN_CLASS = $09
     bit #JOY_B
     bne @leave_shop
     bit #JOY_A
-    bne @buy_food
+    bne @buy_item
+    bit #JOY_UP
+    bne @shop_up
+    bit #JOY_DOWN
+    bne @shop_down
     SET_A8
     jmp @loop
+
+@shop_up:
+    SET_A8
+    lda ShopCursor
+    beq :+
+    dec a
+    sta ShopCursor
+:   jmp @loop
+
+@shop_down:
+    SET_A8
+    lda ShopCursor
+    cmp #$05
+    beq :+
+    inc a
+    sta ShopCursor
+:   jmp @loop
 
 @leave_shop:
     SET_A8
@@ -376,19 +399,92 @@ STATE_CHARGEN_CLASS = $09
     sta MapDirty
     jmp @loop
 
-@buy_food:
+@buy_item:
     SET_A8
+    ; Price table: Food=1(for 10), Rapier=8, Axe=5, Shield=6, Bow=3, Amulet=15
+    lda ShopCursor
+    beq @buy_food
+    cmp #$01
+    beq @buy_rapier
+    cmp #$02
+    beq @buy_axe
+    cmp #$03
+    beq @buy_shield
+    cmp #$04
+    beq @buy_bow
+    ; $05 = amulet
+    jmp @buy_amulet
+
+@buy_food:
     SET_A16
     lda PlayerGold
-    beq @no_gold
+    beq @shop_no_gold
     dec a
     sta PlayerGold
     lda PlayerFood
     clc
     adc #10
     sta PlayerFood
-@no_gold:
     SET_A8
+    jmp @shop_done
+@buy_rapier:
+    SET_A16
+    lda PlayerGold
+    cmp #8
+    bcc @shop_no_gold
+    sec
+    sbc #8
+    sta PlayerGold
+    SET_A8
+    inc PlayerRapier
+    jmp @shop_done
+@buy_axe:
+    SET_A16
+    lda PlayerGold
+    cmp #5
+    bcc @shop_no_gold
+    sec
+    sbc #5
+    sta PlayerGold
+    SET_A8
+    inc PlayerAxe
+    jmp @shop_done
+@buy_shield:
+    SET_A16
+    lda PlayerGold
+    cmp #6
+    bcc @shop_no_gold
+    sec
+    sbc #6
+    sta PlayerGold
+    SET_A8
+    inc PlayerShield
+    jmp @shop_done
+@buy_bow:
+    SET_A16
+    lda PlayerGold
+    cmp #3
+    bcc @shop_no_gold
+    sec
+    sbc #3
+    sta PlayerGold
+    SET_A8
+    inc PlayerBow
+    jmp @shop_done
+@buy_amulet:
+    SET_A16
+    lda PlayerGold
+    cmp #15
+    bcc @shop_no_gold
+    sec
+    sbc #15
+    sta PlayerGold
+    SET_A8
+    inc PlayerAmulet
+    jmp @shop_done
+@shop_no_gold:
+    SET_A8
+@shop_done:
     lda #$01
     sta StatsDirty
     jmp @loop
