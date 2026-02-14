@@ -135,3 +135,64 @@ A1T0H       = $4303     ; DMA source address high
 A1B0        = $4304     ; DMA source bank
 DAS0L       = $4305     ; DMA size low
 DAS0H       = $4306     ; DMA size high
+
+; ============================================================================
+; DMA Transfer Mode Constants
+; ============================================================================
+
+DMA_1REG_1W     = $00   ; 1 register, 1 write (CGRAM)
+DMA_2REG_1W     = $01   ; 2 registers, 1 write each (VRAM: $2118/$2119)
+DMA_1REG_2W     = $02   ; 1 register, 2 writes (OAM)
+DMA_FIXED       = $08   ; Fixed source address (OR with above)
+
+; ============================================================================
+; INIDISP Constants
+; ============================================================================
+
+FORCE_BLANK     = $80   ; Force blank (display off)
+BRIGHTNESS_MAX  = $0F   ; Maximum brightness
+
+; ============================================================================
+; VMAIN Constants
+; ============================================================================
+
+VMAIN_INC1      = $80   ; Increment VRAM address by 1 after writing $2119
+VMAIN_INC32     = $81   ; Increment by 32 (for tilemap row writes)
+
+; ============================================================================
+; NMITIMEN Constants
+; ============================================================================
+
+NMITIMEN_NMI    = $80   ; Enable NMI
+NMITIMEN_JOY    = $01   ; Enable auto-joypad read
+NMITIMEN_NMIJOY = $81   ; Enable both NMI + auto-joypad
+
+; ============================================================================
+; PPU Shadow Register RAM Addresses
+; Game logic writes to shadows; NMI copies shadows → hardware during VBlank.
+; Pattern from BS Zelda (RAM_Map_BSZ1.asm: $1F00-$1F21)
+; Our layout uses $40-$5F (within zero page for fast access)
+; ============================================================================
+
+SHADOW_INIDISP  = $40   ; → $2100 Display control
+SHADOW_OBSEL    = $41   ; → $2101 Sprite size/base
+SHADOW_BGMODE   = $42   ; → $2105 BG mode
+SHADOW_MOSAIC   = $43   ; → $2106 Mosaic
+SHADOW_BG1SC    = $44   ; → $2107 BG1 tilemap addr
+SHADOW_BG2SC    = $45   ; → $2108 BG2 tilemap addr
+SHADOW_BG3SC    = $46   ; → $2109 BG3 tilemap addr
+SHADOW_BG4SC    = $47   ; → $210A BG4 tilemap addr
+SHADOW_BG12NBA  = $48   ; → $210B BG1+2 chr base
+SHADOW_BG34NBA  = $49   ; → $210C BG3+4 chr base
+SHADOW_BG1HOFS  = $4A   ; → $210D BG1 H-scroll (2 bytes: lo, hi)
+SHADOW_BG1VOFS  = $4C   ; → $210E BG1 V-scroll (2 bytes)
+SHADOW_BG2HOFS  = $4E   ; → $210F BG2 H-scroll (2 bytes)
+SHADOW_BG2VOFS  = $50   ; → $2110 BG2 V-scroll (2 bytes)
+SHADOW_BG3HOFS  = $52   ; → $2111 BG3 H-scroll (2 bytes)
+SHADOW_BG3VOFS  = $54   ; → $2112 BG3 V-scroll (2 bytes)
+SHADOW_TM       = $56   ; → $212C Main screen layers
+SHADOW_TS       = $57   ; → $212D Sub screen layers
+SHADOW_CGWSEL   = $58   ; → $2130 Color math control A
+SHADOW_CGADSUB  = $59   ; → $2131 Color math control B
+SHADOW_COLDATA  = $5A   ; → $2132 Fixed color (3 bytes: R, G, B)
+SHADOW_HDMAEN   = $5D   ; → $420C HDMA enable
