@@ -16,5 +16,14 @@ Named after a certain character in Final Fantasy VI, this project is an experime
 - https://blog.wesleyac.com/posts/snes-dev-1-getting-started
 - https://georgjz.github.io/snesaa01/
 
+## Video Tutorials
+- https://www.youtube.com/watch?v=iLXlnMc3pWw
+- https://www.youtube.com/watch?v=kYLJLJkVfLk
+
 ## Tools
 - https://snes.nesdev.org/wiki/Tools
+
+## Interesting Projects
+- An attempt at a SNES engine: https://github.com/Selicre/homebrew
+- A WIP attempt to decompile Harvest Moon (SNES USA): https://github.com/dzik87/HarvestMoonSNES
+- NBA Jam Assembly source code from 1992. Possibly the arcade version, not sure which flavor of Assembly it is. https://github.com/historicalsource/nbajam-complete/tree/main
