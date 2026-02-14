@@ -7,7 +7,10 @@
 
 .importzp JoyPress, GameState, MapDirty
 .importzp PlayerHP, PlayerFood, PlayerGold
-.import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_B
+.importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerQuest
+.importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
+.importzp DiffLevel, StatsDirty
+.import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_A, JOY_B
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
 
 ; ============================================================================
@@ -39,6 +42,9 @@ FACE_WEST       = $03
 STATE_OVERWORLD = $01
 STATE_COMBAT    = $03
 
+; Game states
+STATE_GAMEOVER  = $06
+
 ; Dungeon gfx tile indices (matching gfx.s DungeonTiles order)
 DGTILE_EMPTY    = $00       ; Black/floor
 DGTILE_WALL     = $01       ; Brick wall
@@ -47,6 +53,14 @@ DGTILE_DOOR     = $03       ; Door arch
 DGTILE_FLOOR    = $04       ; Floor pattern
 DGTILE_STAIRS   = $05       ; Stairs
 DGTILE_CHEST    = $06       ; Chest
+DGTILE_MONSTER  = $08       ; Monster figure
+
+MAX_MONSTERS    = 10
+
+; Hardware multiply registers
+WRMPYA_D        = $4202
+WRMPYB_D        = $4203
+RDMPYL_D        = $4216
 
 ; ============================================================================
 ; Zero page
@@ -62,6 +76,9 @@ DG_TempA:       .res 1
 DG_TempB:       .res 1
 DG_Offset:      .res 2
 DungMoveCount:  .res 1      ; Food consumption counter
+DG_MonIdx:      .res 1      ; Monster loop index
+DG_TempC:       .res 1      ; Extra temp
+DG_LuckKills:   .res 1      ; Accumulated luck from kills (award HP on exit)
 
 ; ============================================================================
 ; BSS
@@ -69,6 +86,11 @@ DungMoveCount:  .res 1      ; Food consumption counter
 
 .segment "BSS"
 DungeonGrid:    .res DUNG_SIZE
+MonAlive:       .res MAX_MONSTERS
+MonX:           .res MAX_MONSTERS
+MonY:           .res MAX_MONSTERS
+MonHP:          .res MAX_MONSTERS
+MonType:        .res MAX_MONSTERS
 
 ; ============================================================================
 ; Code
@@ -142,8 +164,10 @@ DungeonGrid:    .res DUNG_SIZE
     sta DungPlayerY
 
     stz DungMoveCount
+    stz DG_LuckKills
 
     jsr GenerateFloor
+    jsr PlaceMonsters
     jsr GfxUploadDungeon
     jsr DungeonRender
     lda #$01
@@ -348,10 +372,16 @@ DungeonGrid:    .res DUNG_SIZE
     bne @turn_right
     bit #JOY_DOWN
     bne @turn_around
+    bit #JOY_A
+    bne @do_attack
     bit #JOY_B
     bne @do_stairs
     SET_A8
     rts
+
+@do_attack:
+    SET_A8
+    jmp @player_attack
 
 @do_stairs:
     SET_A8
@@ -434,6 +464,9 @@ DungeonGrid:    .res DUNG_SIZE
     cmp #DTILE_WALL
     bne :+
     jmp @blocked
+:   cmp #DTILE_MONSTER
+    bne :+
+    jmp @blocked
 :
 
     ; Move player
@@ -477,6 +510,8 @@ DungeonGrid:    .res DUNG_SIZE
     beq @open_chest
     cmp #DTILE_TRAP
     beq @hit_trap
+    ; Normal floor — run monster AI then render
+    jsr MonsterAI
     jmp @render_exit
 
 @hit_trap:
@@ -489,6 +524,7 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_exit        ; Can't go deeper
 :   inc DungFloor
     jsr GenerateFloor
+    jsr PlaceMonsters
     jmp @place_at_up_stairs
 
 @open_chest:
@@ -515,15 +551,18 @@ DungeonGrid:    .res DUNG_SIZE
     beq @exit_dungeon       ; Floor 0 stairs up = exit
     dec DungFloor
     jsr GenerateFloor
+    jsr PlaceMonsters
     ; Place player at down-stairs of new (upper) floor
     jmp @place_at_dn_stairs
 
 @go_down:
     lda DungFloor
     cmp #MAX_FLOORS - 1
-    beq @render_exit        ; Can't go deeper
-    inc DungFloor
+    bne :+
+    jmp @render_exit        ; Can't go deeper
+:   inc DungFloor
     jsr GenerateFloor
+    jsr PlaceMonsters
     ; Place player at up-stairs of new (lower) floor
     jmp @place_at_up_stairs
 
@@ -568,11 +607,27 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_exit
 
 @exit_dungeon:
+    ; Award luck kills as HP
+    lda DG_LuckKills
+    beq @no_luck
+    sta DG_TempC
+    stz DG_Offset+1
+    sta DG_Offset
+    SET_A16
+    lda PlayerHP
+    clc
+    adc DG_Offset
+    sta PlayerHP
+    SET_A8
+    stz DG_LuckKills
+@no_luck:
     jsr GfxUploadOverworld
     lda #STATE_OVERWORLD
     sta GameState
     lda #$01
     sta MapDirty
+    lda #$01
+    sta StatsDirty
     rts
 
 @blocked:
@@ -581,6 +636,158 @@ DungeonGrid:    .res DUNG_SIZE
     lda #$01
     sta MapDirty
     rts
+
+@player_attack:
+    ; Calculate target cell in facing direction
+    lda DungPlayerY
+    sta DG_TempA
+    lda DungPlayerX
+    sta DG_TempB
+    jsr StepForward
+    jsr CheckCell
+    cmp #DTILE_MONSTER
+    beq :+
+    jmp @atk_miss_no_mon
+:   ; Find which monster is at this cell
+    jsr FindMonsterAt
+    bcc :+
+    jmp @atk_miss_no_mon    ; No monster found (shouldn't happen)
+:
+    ; X = monster index (8-bit). Save it.
+    stx DG_MonIdx
+    ; Hit check: PrngNext < DEX * 8 → hit
+    jsr PrngNext
+    sta DG_TempC            ; Random 0-255
+    lda PlayerDEX
+    asl
+    asl
+    asl                     ; DEX * 8
+    cmp DG_TempC
+    bcs :+
+    jmp @atk_miss           ; DEX*8 < random → miss
+:
+    ; Hit! Damage = PrngNext & weapon_mask + 1 + STR/4
+    jsr PrngNext
+    sta DG_TempC
+    ; Best weapon: rapier > axe > bow > shield > hands
+    lda PlayerRapier
+    bne @atk_rapier
+    lda PlayerAxe
+    bne @atk_axe
+    lda PlayerBow
+    bne @atk_bow
+    lda PlayerShield
+    bne @atk_shield
+    lda DG_TempC
+    and #$00                ; 0 damage from hands
+    jmp @atk_calc
+@atk_rapier:
+    lda DG_TempC
+    and #$0F                ; 0-15
+    jmp @atk_calc
+@atk_axe:
+    lda DG_TempC
+    and #$07                ; 0-7
+    jmp @atk_calc
+@atk_bow:
+    lda DG_TempC
+    and #$03                ; 0-3
+    jmp @atk_calc
+@atk_shield:
+    lda DG_TempC
+    and #$01                ; 0-1
+@atk_calc:
+    clc
+    adc #$01                ; At least 1 damage
+    sta DG_TempC
+    lda PlayerSTR
+    lsr
+    lsr                     ; STR / 4
+    clc
+    adc DG_TempC            ; Total damage
+    ; Apply damage to monster
+    SET_XY8
+    ldx DG_MonIdx
+    cmp MonHP,x
+    bcs @kill_mon           ; Damage >= HP → kill
+    sta DG_TempC
+    lda MonHP,x
+    sec
+    sbc DG_TempC
+    sta MonHP,x
+    SET_XY16
+    jsr MonsterAI
+    jmp @render_exit
+@kill_mon:
+    ; Monster killed!
+    lda #$00
+    sta MonAlive,x
+    ; Clear from grid
+    lda MonY,x
+    sta DG_TempA
+    lda MonX,x
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_FLOOR
+    sta DungeonGrid,x
+    ; Award gold = (type+1) + (floor+1)
+    SET_XY8
+    ldx DG_MonIdx
+    lda MonType,x
+    clc
+    adc DungFloor
+    clc
+    adc #$02                ; type+1 + floor+1
+    sta DG_TempC
+    stz DG_Offset+1
+    sta DG_Offset
+    SET_A16
+    lda PlayerGold
+    clc
+    adc DG_Offset
+    sta PlayerGold
+    SET_A8
+    ; Luck kills: LK += (type+1)*(floor+1)/2
+    SET_XY8
+    ldx DG_MonIdx
+    lda MonType,x
+    clc
+    adc #$01
+    sta WRMPYA_D            ; type+1
+    lda DungFloor
+    clc
+    adc #$01
+    sta WRMPYB_D            ; floor+1
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL_D            ; product low byte
+    lsr                     ; / 2
+    clc
+    adc DG_LuckKills
+    sta DG_LuckKills
+    ; Check quest completion
+    ldx DG_MonIdx
+    lda MonType,x
+    cmp PlayerQuest
+    bne @kill_no_quest
+    lda PlayerQuest
+    ora #$80                ; Set completion flag
+    sta PlayerQuest
+@kill_no_quest:
+    lda #$01
+    sta StatsDirty
+    SET_XY16
+    jmp @render_exit
+
+@atk_miss_no_mon:
+@atk_miss:
+    ; Miss — monster AI still runs
+    jsr MonsterAI
+    jmp @render_exit
 
 @use_stairs:
     ; Check current tile under player
@@ -596,6 +803,520 @@ DungeonGrid:    .res DUNG_SIZE
     bne :+
     jmp @go_down
 :   rts
+.endproc
+
+; ============================================================================
+; PlaceMonsters — spawn monsters on the current floor
+; Original: type X spawns if X-2 <= floor, 40% chance, random open cell
+; HP = (type+1)*2 + (floor+1)*2*difficulty
+; ============================================================================
+.proc PlaceMonsters
+    SET_AXY8
+
+    ; Clear all monster slots
+    ldx #$00
+@clear:
+    stz MonAlive,x
+    inx
+    cpx #MAX_MONSTERS
+    bne @clear
+
+    stz DG_MonIdx
+
+@place_loop:
+    ; Check eligibility: type-2 <= floor → type <= floor+2
+    lda DG_MonIdx
+    sec
+    sbc #$02
+    bmi @eligible           ; type < 2 → always eligible
+    cmp DungFloor
+    beq @eligible
+    bcc @eligible
+    jmp @next_mon           ; type-2 > floor → skip
+
+@eligible:
+    ; 40% chance: PrngNext < 102
+    jsr PrngNext
+    cmp #102
+    bcc :+
+    jmp @next_mon
+:
+
+    ; Find random open cell (try up to 20 times)
+    lda #20
+    sta DG_TempC
+@find_cell:
+    SET_XY16
+    jsr PrngNext
+    sta DG_TempA
+    ; Map to 1-9 range: (val % 9) + 1
+    lda DG_TempA
+    and #$07                ; 0-7
+    clc
+    adc #$01                ; 1-8 (close enough for 1-9)
+    sta DG_TempA            ; row
+
+    jsr PrngNext
+    and #$07
+    clc
+    adc #$01                ; 1-8
+    sta DG_TempB            ; col
+
+    ; Check cell is floor
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda DungeonGrid,x
+    cmp #DTILE_FLOOR
+    bne @retry
+
+    ; Check not player position
+    lda DG_TempA
+    cmp DungPlayerY
+    bne @place_ok
+    lda DG_TempB
+    cmp DungPlayerX
+    beq @retry
+
+@place_ok:
+    ; Place monster
+    SET_XY8
+    ldx DG_MonIdx
+    lda #$01
+    sta MonAlive,x
+    lda DG_TempA
+    sta MonY,x
+    lda DG_TempB
+    sta MonX,x
+    lda DG_MonIdx
+    sta MonType,x
+
+    ; HP = (type+1)*2 + (floor+1)*2*difficulty
+    lda DG_MonIdx
+    clc
+    adc #$01
+    asl                     ; (type+1)*2
+    sta DG_TempC
+
+    ; (floor+1) * difficulty via hardware multiply
+    lda DungFloor
+    clc
+    adc #$01
+    sta WRMPYA_D
+    lda DiffLevel
+    sta WRMPYB_D
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL_D            ; product low byte
+    asl                     ; * 2
+    clc
+    adc DG_TempC
+    ldx DG_MonIdx
+    sta MonHP,x
+
+    ; Mark grid
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_MONSTER
+    sta DungeonGrid,x
+    jmp @next_mon
+
+@retry:
+    SET_AXY8
+    dec DG_TempC
+    beq @next_mon
+    jmp @find_cell
+
+@next_mon:
+    SET_AXY8
+    inc DG_MonIdx
+    lda DG_MonIdx
+    cmp #MAX_MONSTERS
+    beq :+
+    jmp @place_loop
+:   rts
+.endproc
+
+; ============================================================================
+; FindMonsterAt — find monster at position DG_TempA (row), DG_TempB (col)
+; Returns: X = monster index (8-bit), carry clear if found, set if not
+; ============================================================================
+.proc FindMonsterAt
+    SET_XY8
+    ldx #$00
+@loop:
+    lda MonAlive,x
+    beq @next
+    lda MonY,x
+    cmp DG_TempA
+    bne @next
+    lda MonX,x
+    cmp DG_TempB
+    bne @next
+    clc                     ; Found
+    rts
+@next:
+    inx
+    cpx #MAX_MONSTERS
+    bne @loop
+    sec                     ; Not found
+    rts
+.endproc
+
+; ============================================================================
+; MonsterAI — move monsters and attack player if adjacent
+; Called after player's action each turn
+; ============================================================================
+.proc MonsterAI
+    SET_AXY8
+
+    stz DG_MonIdx
+
+@ai_loop:
+    ldx DG_MonIdx
+    lda MonAlive,x
+    bne :+
+    jmp @ai_next
+:
+    ; Mimic (type 7): don't move
+    lda MonType,x
+    cmp #$07
+    bne :+
+    jmp @ai_check_adjacent
+:
+
+    ; Calculate direction toward player
+    ; DG_TempA = dy direction, DG_TempB = dx direction
+    lda MonY,x
+    cmp DungPlayerY
+    beq @dy_zero
+    bcc @dy_pos             ; monY < playerY → move south (+1)
+    ; monY > playerY → move north (-1)
+    lda #$FF
+    sta DG_TempA
+    jmp @calc_dx
+@dy_pos:
+    lda #$01
+    sta DG_TempA
+    jmp @calc_dx
+@dy_zero:
+    stz DG_TempA
+
+@calc_dx:
+    ldx DG_MonIdx
+    lda MonX,x
+    cmp DungPlayerX
+    beq @dx_zero
+    bcc @dx_pos
+    lda #$FF
+    sta DG_TempB
+    jmp @try_move
+@dx_pos:
+    lda #$01
+    sta DG_TempB
+    jmp @try_move
+@dx_zero:
+    stz DG_TempB
+
+@try_move:
+    ; Try Y movement first
+    lda DG_TempA
+    bne :+
+    jmp @try_x_move
+:   ldx DG_MonIdx
+    lda MonY,x
+    clc
+    adc DG_TempA            ; target Y
+    bpl :+
+    jmp @try_x_move         ; Out of bounds (negative)
+:   cmp #DUNG_H
+    bcc :+
+    jmp @try_x_move
+:
+    sta DG_TempC            ; Save target Y
+    lda MonX,x
+    pha                     ; Save mon X
+    sta DG_Offset           ; Use as col
+    ; Check target cell
+    lda DG_TempC
+    sta DG_Offset+1         ; Save target Y
+    ; CalcDungOffset expects row in A, col in DG_TempB
+    ; But DG_TempB is our dx! Need to use mon's X
+    pla                     ; Get mon X back
+    sta DG_TempB            ; Set col for CalcDungOffset
+    lda DG_TempC            ; target Y as row
+    SET_XY16
+    jsr CalcDungOffset
+    lda DungeonGrid,x
+    SET_AXY8
+    cmp #DTILE_FLOOR
+    bne @try_x_move_restore
+    ; Check not player position
+    ldx DG_MonIdx
+    lda DG_TempC
+    cmp DungPlayerY
+    bne @do_y_move
+    lda MonX,x
+    cmp DungPlayerX
+    beq @try_x_move_restore ; Would land on player
+
+@do_y_move:
+    ; Move monster in Y direction
+    ldx DG_MonIdx
+    ; Clear old grid cell
+    lda MonY,x
+    sta DG_TempA
+    lda MonX,x
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_FLOOR
+    sta DungeonGrid,x
+    ; Update position
+    SET_XY8
+    ldx DG_MonIdx
+    lda DG_TempC
+    sta MonY,x
+    ; Mark new grid cell
+    lda MonY,x
+    sta DG_TempA
+    lda MonX,x
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_MONSTER
+    sta DungeonGrid,x
+    SET_AXY8
+    jmp @ai_check_adjacent
+
+@try_x_move_restore:
+    ; Restore DG_TempB to dx (was clobbered by CalcDungOffset usage)
+    ; Actually we lost dx info. Try X movement with recalculated dx.
+    ldx DG_MonIdx
+    lda MonX,x
+    cmp DungPlayerX
+    bne :+
+    jmp @ai_check_adjacent
+:   bcc @recalc_dx_pos
+    lda #$FF
+    sta DG_TempB
+    jmp @do_x_check
+@recalc_dx_pos:
+    lda #$01
+    sta DG_TempB
+    jmp @do_x_check
+
+@try_x_move:
+    lda DG_TempB
+    bne :+
+    jmp @ai_check_adjacent
+:
+@do_x_check:
+    ldx DG_MonIdx
+    lda MonX,x
+    clc
+    adc DG_TempB            ; target X
+    bpl :+
+    jmp @ai_check_adjacent
+:   cmp #DUNG_W
+    bcc :+
+    jmp @ai_check_adjacent
+:   sta DG_TempC            ; Save target X
+
+    ; Check target cell
+    lda MonY,x
+    sta DG_TempA
+    lda DG_TempC
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda DungeonGrid,x
+    SET_AXY8
+    cmp #DTILE_FLOOR
+    beq :+
+    jmp @ai_check_adjacent
+:   ; Check not player position
+    ldx DG_MonIdx
+    lda MonY,x
+    cmp DungPlayerY
+    bne @do_x_move
+    lda DG_TempC
+    cmp DungPlayerX
+    bne @do_x_move
+    jmp @ai_check_adjacent
+
+@do_x_move:
+    ; Clear old grid cell
+    ldx DG_MonIdx
+    lda MonY,x
+    sta DG_TempA
+    lda MonX,x
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_FLOOR
+    sta DungeonGrid,x
+    ; Update position
+    SET_XY8
+    ldx DG_MonIdx
+    lda DG_TempC
+    sta MonX,x
+    ; Mark new grid cell
+    lda MonY,x
+    sta DG_TempA
+    lda MonX,x
+    sta DG_TempB
+    SET_XY16
+    lda DG_TempA
+    jsr CalcDungOffset
+    lda #DTILE_MONSTER
+    sta DungeonGrid,x
+    SET_AXY8
+
+@ai_check_adjacent:
+    ; Check if monster is adjacent to player (distance = 1 in any cardinal dir)
+    SET_AXY8
+    ldx DG_MonIdx
+    lda MonAlive,x
+    bne :+
+    jmp @ai_next
+:
+    ; Check if |monY - playerY| + |monX - playerX| == 1
+    lda MonY,x
+    sec
+    sbc DungPlayerY
+    bpl :+
+    eor #$FF
+    clc
+    adc #$01                ; abs(dy)
+:   sta DG_TempA            ; |dy|
+    lda MonX,x
+    sec
+    sbc DungPlayerX
+    bpl :+
+    eor #$FF
+    clc
+    adc #$01                ; abs(dx)
+:   clc
+    adc DG_TempA            ; Manhattan distance
+    cmp #$01
+    beq :+
+    jmp @ai_next
+:
+
+    ; Adjacent! Monster attacks player.
+    ; Thief (type 1): 50% steal random item
+    ldx DG_MonIdx
+    lda MonType,x
+    cmp #$01
+    bne @not_thief
+    jsr PrngNext
+    and #$01
+    beq @mon_normal_attack
+    ; Steal a random item (try to find one the player has)
+    jsr PrngNext
+    and #$03                ; 0-3 → rapier, axe, shield, bow
+    beq @steal_rapier
+    cmp #$01
+    beq @steal_axe
+    cmp #$02
+    beq @steal_shield
+    ; 3 = bow
+    lda PlayerBow
+    beq @mon_normal_attack
+    dec PlayerBow
+    jmp @ai_next
+@steal_rapier:
+    lda PlayerRapier
+    beq @mon_normal_attack
+    dec PlayerRapier
+    jmp @ai_next
+@steal_axe:
+    lda PlayerAxe
+    beq @mon_normal_attack
+    dec PlayerAxe
+    jmp @ai_next
+@steal_shield:
+    lda PlayerShield
+    beq @mon_normal_attack
+    dec PlayerShield
+    jmp @ai_next
+
+@not_thief:
+    ; Gremlin (type 6): 50% eat half food
+    cmp #$06
+    bne @mon_normal_attack
+    jsr PrngNext
+    and #$01
+    beq @mon_normal_attack
+    SET_A16
+    lda PlayerFood
+    lsr                     ; / 2
+    sta PlayerFood
+    SET_A8
+    jmp @ai_next
+
+@mon_normal_attack:
+    ; Hit check: PrngNext < (type+1)*8
+    jsr PrngNext
+    sta DG_TempC
+    ldx DG_MonIdx
+    lda MonType,x
+    clc
+    adc #$01                ; type+1
+    asl
+    asl
+    asl                     ; (type+1)*8
+    cmp DG_TempC
+    bcc @ai_next            ; Miss
+
+    ; Hit! Damage = PrngNext & (type+1) + 1
+    jsr PrngNext
+    ldx DG_MonIdx
+    and MonType,x           ; PrngNext & type
+    clc
+    adc #$01                ; + 1
+    clc
+    adc DungFloor           ; + floor
+    ; Apply to player HP
+    sta DG_TempC
+    stz DG_Offset+1
+    sta DG_Offset
+    SET_A16
+    lda PlayerHP
+    sec
+    sbc DG_Offset
+    bcs :+
+    lda #$0000
+:   sta PlayerHP
+    SET_A8
+    lda #$01
+    sta StatsDirty
+
+    ; Check player death
+    SET_A16
+    lda PlayerHP
+    SET_A8
+    bne @ai_next
+    ; Player died!
+    lda #STATE_GAMEOVER
+    sta GameState
+
+@ai_next:
+    SET_AXY8
+    inc DG_MonIdx
+    lda DG_MonIdx
+    cmp #MAX_MONSTERS
+    beq @ai_done
+    jmp @ai_loop
+@ai_done:
+    rts
 .endproc
 
 ; ============================================================================
@@ -645,6 +1366,8 @@ DungeonGrid:    .res DUNG_SIZE
     beq @draw_chest_d1
     cmp #DTILE_DOOR
     beq @draw_door_d1
+    cmp #DTILE_MONSTER
+    beq @draw_monster_d1
 
     ; Check left wall at depth 1
     jsr CheckLeftWall
@@ -668,6 +1391,8 @@ DungeonGrid:    .res DUNG_SIZE
     beq @draw_stairs_d2
     cmp #DTILE_STAIRS_DN
     beq @draw_stairs_d2
+    cmp #DTILE_MONSTER
+    beq @draw_monster_d2
 
     ; Check side walls at depth 2
     jsr CheckLeftWall
@@ -714,6 +1439,12 @@ DungeonGrid:    .res DUNG_SIZE
     jmp @render_done
 @draw_door_d1:
     jsr DrawDoorD1
+    jmp @render_done
+@draw_monster_d1:
+    jsr DrawMonsterD1
+    jmp @render_done
+@draw_monster_d2:
+    jsr DrawMonsterD2
     jmp @render_done
 
 @render_done:
@@ -1125,6 +1856,44 @@ DungeonGrid:    .res DUNG_SIZE
     bne @col
     iny
     cpy #22
+    bne @row
+    rts
+.endproc
+
+; DrawMonsterD1: monster figure at depth 1 (center, 6x6 tiles)
+.proc DrawMonsterD1
+    SET_A8
+    SET_XY16
+    ldy #10
+@row:
+    ldx #13
+@col:
+    lda #DGTILE_MONSTER
+    jsr WriteTile
+    inx
+    cpx #19
+    bne @col
+    iny
+    cpy #20
+    bne @row
+    rts
+.endproc
+
+; DrawMonsterD2: monster figure at depth 2 (smaller, 4x4 tiles)
+.proc DrawMonsterD2
+    SET_A8
+    SET_XY16
+    ldy #11
+@row:
+    ldx #14
+@col:
+    lda #DGTILE_MONSTER
+    jsr WriteTile
+    inx
+    cpx #18
+    bne @col
+    iny
+    cpy #17
     bne @row
     rts
 .endproc

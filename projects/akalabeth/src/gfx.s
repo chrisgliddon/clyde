@@ -571,7 +571,13 @@ DungeonTiles:
 .byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0  ; BP 2,3
 .byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0
 
-DUNGEON_TILES_SIZE = * - DungeonTiles ; 256 bytes
+; Tile 8: Monster — wireframe humanoid figure
+.byte $18,$18, $24,$24, $18,$18, $7E,$7E  ; BP 0,1
+.byte $18,$18, $18,$18, $24,$24, $42,$42
+.byte $18,$18, $24,$24, $18,$18, $7E,$7E  ; BP 2,3
+.byte $18,$18, $18,$18, $24,$24, $42,$42
+
+DUNGEON_TILES_SIZE = * - DungeonTiles
 
 ; ----------------------------------------------------------------------------
 ; Dungeon palette — B&W: same as overworld
