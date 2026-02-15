@@ -136,6 +136,15 @@ A1B0        = $4304     ; DMA source bank
 DAS0L       = $4305     ; DMA size low
 DAS0H       = $4306     ; DMA size high
 
+; DMA channel 1 registers (used for HDMA)
+DMAP1       = $4310     ; DMA/HDMA control
+BBAD1       = $4311     ; DMA destination (B-bus address)
+A1T1L       = $4312     ; Source address low / HDMA table low
+A1T1H       = $4313     ; Source address high / HDMA table high
+A1B1        = $4314     ; Source bank / HDMA table bank
+DAS1L       = $4315     ; DMA size low / HDMA indirect addr low
+DAS1H       = $4316     ; DMA size high / HDMA indirect addr high
+
 ; ============================================================================
 ; APU Communication Registers ($2140-$2143)
 ; ============================================================================

@@ -9,14 +9,6 @@
 
 .export GfxUploadOverworld, GfxUploadFont, GfxUploadDungeon
 
-; DMA channel 0 registers (channel 1 for second transfers)
-DMAP1       = $4310
-BBAD1       = $4311
-A1T1L       = $4312
-A1T1H       = $4313
-A1B1        = $4314
-DAS1L       = $4315
-DAS1H       = $4316
 
 ; ============================================================================
 ; Code

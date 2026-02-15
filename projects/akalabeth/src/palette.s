@@ -1,5 +1,7 @@
 ; palette.s — Palette effects engine
 ; Screen-wide color effects via COLDATA fixed color math
+; Integrates with HDMA gradients: disables HDMA during flash/heal,
+; re-enables on restore.
 
 .include "macros.s"
 
@@ -8,6 +10,7 @@
 .exportzp PalFxType, PalFxTimer
 
 .importzp NmiCount
+.importzp HdmaGradient
 
 ; ============================================================================
 ; Zero Page
@@ -51,6 +54,7 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
 ; ============================================================================
 ; PalFxTick — process active palette effect each frame
 ; Updates SHADOW_CGWSEL, SHADOW_CGADSUB, SHADOW_COLDATA.
+; Disables HDMA channel 1 during active effects, re-enables on restore.
 ; Call every frame from main loop before ambient effects.
 ; ============================================================================
 .proc PalFxTick
@@ -64,6 +68,10 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
     jmp @restore
 
 @do_flash:
+    ; Disable HDMA channel 1 during flash
+    lda SHADOW_HDMAEN
+    and #$FD
+    sta SHADOW_HDMAEN
     ; Enable color math: add fixed color
     stz SHADOW_CGWSEL               ; color math always, fixed color
     lda #$31                        ; add to BG1 + OBJ + backdrop
@@ -84,6 +92,10 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
     jmp @restore
 
 @do_heal:
+    ; Disable HDMA channel 1 during heal
+    lda SHADOW_HDMAEN
+    and #$FD
+    sta SHADOW_HDMAEN
     stz SHADOW_CGWSEL
     lda #$31
     sta SHADOW_CGADSUB
@@ -103,7 +115,10 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
     jmp @restore
 
 @restore:
-    ; Disable color math
+    ; Check if HDMA gradient is active
+    lda HdmaGradient
+    bne @restore_hdma
+    ; No HDMA: disable color math
     lda #$30                        ; color math = never
     sta SHADOW_CGWSEL
     stz SHADOW_CGADSUB
@@ -113,6 +128,16 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
     sta SHADOW_COLDATA+1            ; green channel, intensity 0
     lda #$80
     sta SHADOW_COLDATA+2            ; red channel, intensity 0
+    jmp @done
+@restore_hdma:
+    ; Re-enable HDMA channel 1
+    lda SHADOW_HDMAEN
+    ora #$02
+    sta SHADOW_HDMAEN
+    ; Restore gradient color math (add to BG1 + backdrop)
+    stz SHADOW_CGWSEL
+    lda #$21
+    sta SHADOW_CGADSUB
 @done:
     rts
 .endproc
@@ -120,12 +145,14 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
 ; ============================================================================
 ; PalFxWaterCycle — subtle blue shimmer for overworld
 ; Call each frame during overworld state (after PalFxTick).
-; Skipped if a flash/heal effect is active.
+; Skipped if a flash/heal effect or HDMA gradient is active.
 ; ============================================================================
 .proc PalFxWaterCycle
     SET_A8
     lda PalFxType
     bne @skip                       ; active effect overrides ambient
+    lda HdmaGradient
+    bne @skip                       ; HDMA gradient supersedes
 
     ; Enable color math with subtle blue oscillation
     stz SHADOW_CGWSEL               ; color math always, fixed color
@@ -156,12 +183,14 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
 ; ============================================================================
 ; PalFxTorchFlicker — warm orange flicker for dungeons
 ; Call each frame during dungeon state (after PalFxTick).
-; Skipped if a flash/heal effect is active.
+; Skipped if a flash/heal effect or HDMA gradient is active.
 ; ============================================================================
 .proc PalFxTorchFlicker
     SET_A8
     lda PalFxType
     bne @skip
+    lda HdmaGradient
+    bne @skip                       ; HDMA gradient supersedes
 
     stz SHADOW_CGWSEL               ; color math always, fixed color
     lda #$21                        ; add to BG1 + backdrop

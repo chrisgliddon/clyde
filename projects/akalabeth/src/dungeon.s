@@ -18,6 +18,7 @@
 .import FadeOut, FadeIn
 .import PlaySfx
 .import PalFxFlash, PalFxTorchFlicker
+.import HdmaSetDungeon, HdmaDisable
 .include "sfx_ids.inc"
 .import UiSetMessage, UiMsgInit, UiMsgAppendStr, UiMsgAppendNum
 .import UiMsgAppendMonName, UiMsgShow
@@ -186,6 +187,7 @@ MonType:        .res MAX_MONSTERS
     jsr PlaceMonsters
     jsr FadeOut
     jsr GfxUploadDungeon
+    jsr HdmaSetDungeon
     jsr FadeIn
     jsr DungeonRender
     lda #$01

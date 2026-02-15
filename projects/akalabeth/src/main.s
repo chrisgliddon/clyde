@@ -22,6 +22,7 @@
 .import AudioInit, PlaySfx
 .import SpriteInit
 .import PalFxTick, PalFxFlash, PalFxHeal, PalFxWaterCycle, PalFxTorchFlicker
+.import HdmaSetOverworld, HdmaDisable
 .include "sfx_ids.inc"
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
@@ -397,6 +398,7 @@ STATE_CHARGEN_CLASS = $09
     jsr UiClearBg3
     jsr FadeOut
     jsr GfxUploadOverworld
+    jsr HdmaSetOverworld
     jsr FadeIn
     jsr OverworldRender
     lda #$01
@@ -433,6 +435,7 @@ STATE_CHARGEN_CLASS = $09
     jsr UiClearBg3
     jsr FadeOut
     jsr GfxUploadOverworld
+    jsr HdmaSetOverworld
     jsr FadeIn
     jsr OverworldRender
     lda #$01
@@ -480,6 +483,7 @@ STATE_CHARGEN_CLASS = $09
     jsr UiClearBg3
     jsr FadeOut
     jsr GfxUploadOverworld
+    jsr HdmaSetOverworld
     jsr FadeIn
     jsr OverworldRender
     lda #STATE_OVERWORLD
@@ -599,6 +603,7 @@ STATE_CHARGEN_CLASS = $09
     jsr UiClearBg3
     jsr FadeOut
     jsr GfxUploadOverworld
+    jsr HdmaSetOverworld
     jsr FadeIn
     jsr OverworldRender
     lda #STATE_OVERWORLD
