@@ -115,6 +115,14 @@ DmaCount:   .res 1          ; Number of queued entries (0 = empty)
     lda SHADOW_CGADSUB
     sta CGADSUB
 
+    ; Fixed color data (3 writes: blue, green, red channels)
+    lda SHADOW_COLDATA
+    sta COLDATA
+    lda SHADOW_COLDATA+1
+    sta COLDATA
+    lda SHADOW_COLDATA+2
+    sta COLDATA
+
     ; Brightness (INIDISP) — written last among PPU regs
     lda SHADOW_INIDISP
     sta INIDISP

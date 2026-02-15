@@ -17,6 +17,7 @@
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
 .import FadeOut, FadeIn
 .import PlaySfx
+.import PalFxFlash, PalFxTorchFlicker
 .include "sfx_ids.inc"
 .import UiSetMessage, UiMsgInit, UiMsgAppendStr, UiMsgAppendNum
 .import UiMsgAppendMonName, UiMsgShow
@@ -1670,7 +1671,9 @@ MonType:        .res MAX_MONSTERS
     asl
     asl                     ; (type+1)*8
     cmp DG_TempC
-    bcc @mon_miss           ; Miss
+    bcs :+                  ; Hit → continue
+    jmp @mon_miss           ; Miss
+:
 
     ; Hit! Damage = PrngNext & (type+1) + 1
     jsr PrngNext
@@ -1695,6 +1698,7 @@ MonType:        .res MAX_MONSTERS
     ; SFX: monster hit player
     lda #SFX_HURT
     jsr PlaySfx
+    jsr PalFxFlash
     ; Message: "MONSTER HITS! N DMG"
     SET_XY16
     jsr UiMsgInit

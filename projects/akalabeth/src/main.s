@@ -21,6 +21,7 @@
 .import SaveGame, LoadGame, EraseSave
 .import AudioInit, PlaySfx
 .import SpriteInit
+.import PalFxTick, PalFxFlash, PalFxHeal, PalFxWaterCycle, PalFxTorchFlicker
 .include "sfx_ids.inc"
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
@@ -252,6 +253,7 @@ STATE_CHARGEN_CLASS = $09
     ; VBlank active: flush tilemaps then read joypad
     jsr FlushTilemaps
     jsr ReadJoypad
+    jsr PalFxTick
 
     lda GameState
     beq @do_title
@@ -412,6 +414,7 @@ STATE_CHARGEN_CLASS = $09
     lda #$01
     sta MapDirty
 :   jsr UiDrawStats
+    jsr PalFxWaterCycle
     jmp @loop
 
 ; --- Dungeon ---
@@ -424,6 +427,7 @@ STATE_CHARGEN_CLASS = $09
     beq :+
     jsr UiDrawStats
     jsr UiTickMessage
+    jsr PalFxTorchFlicker
 :   jmp @loop
 @exit_dungeon_gfx:
     jsr UiClearBg3
@@ -627,6 +631,7 @@ STATE_CHARGEN_CLASS = $09
     clc
     adc #2
     sta PlayerSTR
+    jsr PalFxHeal
     lda #$01
     sta StatsDirty
     jsr SaveGame
