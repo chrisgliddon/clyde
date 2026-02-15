@@ -19,6 +19,8 @@
 .import PlaySfx
 .import PalFxFlash, PalFxTorchFlicker
 .import HdmaSetDungeon, HdmaDisable
+.import SpriteSetEntry, SpriteClearAll
+.importzp SprX, SprY, SprTile, SprAttr, SprSize
 .include "sfx_ids.inc"
 .import UiSetMessage, UiMsgInit, UiMsgAppendStr, UiMsgAppendNum
 .import UiMsgAppendMonName, UiMsgShow
@@ -96,6 +98,7 @@ DungMoveCount:  .res 1      ; Food consumption counter
 DG_MonIdx:      .res 1      ; Monster loop index
 DG_TempC:       .res 1      ; Extra temp
 DG_LuckKills:   .res 1      ; Accumulated luck from kills (award HP on exit)
+MonDeathTimer:  .res 1      ; Death animation countdown (0=inactive)
 
 ; ============================================================================
 ; BSS
@@ -182,6 +185,7 @@ MonType:        .res MAX_MONSTERS
 
     stz DungMoveCount
     stz DG_LuckKills
+    stz MonDeathTimer
 
     jsr GenerateFloor
     jsr PlaceMonsters
@@ -380,6 +384,7 @@ MonType:        .res MAX_MONSTERS
 .proc DungeonUpdate
     SET_AXY8
     SET_XY16
+    jsr TickMonsterDeath
 
     ; 16-bit joypad test
     SET_A16
@@ -701,6 +706,7 @@ MonType:        .res MAX_MONSTERS
     stz DG_LuckKills
 @no_luck:
     ; Just set state — GfxUploadOverworld handled by main loop
+    jsr SpriteClearAll
     lda #STATE_OVERWORLD
     sta GameState
     lda #$01
@@ -819,6 +825,8 @@ MonType:        .res MAX_MONSTERS
     ; Monster killed!
     lda #SFX_KILL
     jsr PlaySfx
+    lda #$08                ; 8-frame death animation
+    sta MonDeathTimer
     lda #$00
     sta MonAlive,x
     ; Clear from grid
@@ -1779,6 +1787,7 @@ MonType:        .res MAX_MONSTERS
 ; Uses dungeon tile graphics for walls/floor/features
 ; ============================================================================
 .proc DungeonRender
+    jsr ClearMonsterSprites
     SET_AXY16
 
     ; Clear tilemap to floor tile
@@ -1846,7 +1855,9 @@ MonType:        .res MAX_MONSTERS
     cmp #DTILE_STAIRS_DN
     beq @draw_stairs_d2
     cmp #DTILE_MONSTER
-    beq @draw_monster_d2
+    bne :+
+    jmp @draw_monster_d2
+:
 
     ; Check side walls at depth 2
     jsr CheckLeftWall
@@ -1896,35 +1907,58 @@ MonType:        .res MAX_MONSTERS
     jmp @render_done
 @draw_monster_d1:
     jsr FindMonsterAt
-    bcs @d1_default
+    bcs @d1_spr_default
     SET_XY8
     lda MonType,x
     SET_XY16
-    clc
-    adc #DGTILE_MONSTER_BASE
-    sta DG_TempC
-    jmp @d1_draw
-@d1_default:
-    lda #DGTILE_MONSTER_BASE
-    sta DG_TempC
-@d1_draw:
-    jsr DrawMonsterD1
+    jmp @d1_spr_place
+@d1_spr_default:
+    lda #$00                ; Default type 0
+@d1_spr_place:
+    ; Place 16x16 monster sprite at center (depth 1, close)
+    jsr SetMonsterPalAttr
+    lda #120                ; X center
+    sta SprX
+    lda #96                 ; Y center
+    sta SprY
+    lda #$02                ; Tile 2 (monster shape)
+    sta SprTile
+    lda #$01                ; Large (16x16)
+    sta SprSize
+    ; Check death animation — toggle H-flip
+    lda MonDeathTimer
+    beq @d1_no_death
+    and #$01
+    beq @d1_no_death
+    lda SprAttr
+    ora #$40                ; H-flip
+    sta SprAttr
+@d1_no_death:
+    lda #$01                ; Sprite index 1
+    jsr SpriteSetEntry
     jmp @render_done
 @draw_monster_d2:
     jsr FindMonsterAt
-    bcs @d2_default
+    bcs @d2_spr_default
     SET_XY8
     lda MonType,x
     SET_XY16
-    clc
-    adc #DGTILE_MONSTER_BASE
-    sta DG_TempC
-    jmp @d2_draw
-@d2_default:
-    lda #DGTILE_MONSTER_BASE
-    sta DG_TempC
-@d2_draw:
-    jsr DrawMonsterD2
+    jmp @d2_spr_place
+@d2_spr_default:
+    lda #$00
+@d2_spr_place:
+    ; Place 16x16 monster sprite (depth 2, far)
+    jsr SetMonsterPalAttr
+    lda #120                ; X center
+    sta SprX
+    lda #104                ; Y slightly lower (further)
+    sta SprY
+    lda #$02                ; Tile 2
+    sta SprTile
+    lda #$01                ; Large
+    sta SprSize
+    lda #$02                ; Sprite index 2
+    jsr SpriteSetEntry
     jmp @render_done
 
 @render_done:
@@ -2388,6 +2422,69 @@ MonType:        .res MAX_MONSTERS
     iny
     cpy #17
     bne @row
+    rts
+.endproc
+
+; ============================================================================
+; SetMonsterPalAttr — set SprAttr based on monster type in A
+; Input: A = monster type (0-9). Output: SprAttr set.
+; Palette mapping: 0=white, 1=red, 2=green, 3=brown
+; ============================================================================
+.proc SetMonsterPalAttr
+    SET_AXY8
+    SET_XY16
+    tax
+    lda MonTypePalette,x
+    ora #$20                    ; Priority 2 (above BG1)
+    sta SprAttr
+    rts
+.endproc
+
+; Monster type → OBJ palette index (shifted left 1 for OAM attr bits 1-0 of palette)
+; Type: thief(0) skel(1) rat(2) orc(3) viper(4) carrion(5) grem(6) mimic(7) daemon(8) balrog(9)
+; Pal:  brown(3) white(0) green(2) red(1) green(2) green(2) brown(3) white(0) red(1) red(1)
+; OAM attr bits 1-3: palette index → $00/$02/$04/$06
+MonTypePalette:
+    .byte $06, $00, $04, $02, $04, $04, $06, $00, $02, $02
+
+; ============================================================================
+; ClearMonsterSprites — hide monster sprites 1-2
+; Call at start of DungeonRender before drawing.
+; ============================================================================
+.proc ClearMonsterSprites
+    SET_A8
+    ; Hide sprite 1 (D1 monster) — move offscreen
+    lda #$F0
+    sta SprY
+    stz SprX
+    stz SprTile
+    stz SprAttr
+    stz SprSize
+    lda #$01
+    jsr SpriteSetEntry
+    ; Hide sprite 2 (D2 monster)
+    lda #$F0
+    sta SprY
+    stz SprX
+    stz SprTile
+    stz SprAttr
+    stz SprSize
+    lda #$02
+    jsr SpriteSetEntry
+    rts
+.endproc
+
+; ============================================================================
+; TickMonsterDeath — process death animation each frame
+; Decrements MonDeathTimer. When it reaches 0, monster sprites are hidden.
+; ============================================================================
+.proc TickMonsterDeath
+    SET_A8
+    lda MonDeathTimer
+    beq @done
+    dec a
+    sta MonDeathTimer
+@done:
     rts
 .endproc
 

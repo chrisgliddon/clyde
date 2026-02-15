@@ -293,6 +293,70 @@
 .proc GfxUploadDungeon
     SET_A8
 
+    ; --- Sprite tiles + OBJ palettes (same as overworld) ---
+    ; Upload monster sprite tiles to VRAM $4020 (tile 2 top row)
+    lda #$80
+    sta VMAIN
+    lda #$20
+    sta VMADDL
+    lda #$40                ; VRAM word $4020
+    sta VMADDH
+    lda #DMA_2REG_1W
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #<MonsterSprTiles
+    sta A1T0L
+    lda #>MonsterSprTiles
+    sta A1T0H
+    lda #^MonsterSprTiles
+    sta A1B0
+    lda #$40                ; 64 bytes (tiles 2-3)
+    sta DAS0L
+    stz DAS0H
+    lda #$01
+    sta MDMAEN
+
+    ; Bottom row → VRAM $4120 (tile 18 row)
+    lda #$20
+    sta VMADDL
+    lda #$41                ; VRAM word $4120
+    sta VMADDH
+    lda #<(MonsterSprTiles + 64)
+    sta A1T0L
+    lda #>(MonsterSprTiles + 64)
+    sta A1T0H
+    lda #^(MonsterSprTiles + 64)
+    sta A1B0
+    lda #$40
+    sta DAS0L
+    stz DAS0H
+    lda #$01
+    sta MDMAEN
+
+    ; Upload 4 OBJ palettes (128 bytes → CGRAM $80)
+    lda #$80
+    sta CGADD
+    lda #DMA_1REG_1W
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #<MonsterObjPalettes
+    sta A1T0L
+    lda #>MonsterObjPalettes
+    sta A1T0H
+    lda #^MonsterObjPalettes
+    sta A1B0
+    lda #$80                ; 128 bytes = 4 palettes
+    sta DAS0L
+    stz DAS0H
+    lda #$01
+    sta MDMAEN
+
+    ; Enable OBJ on main screen
+    lda #$15
+    sta SHADOW_TM
+
     ; Upload dungeon tiles to VRAM $0000
     lda #$80
     sta VMAIN
@@ -869,3 +933,77 @@ ObjPalette0:
     .word $001F             ; 15: Red
 
 OBJ_PAL0_SIZE = * - ObjPalette0 ; 32 bytes
+
+; ----------------------------------------------------------------------------
+; Monster sprite tiles — 4bpp 16x16 generic creature (4 × 8x8 = 128 bytes)
+; VRAM tiles 2,3 (top) + 18,19 (bottom)
+; Body shape: pointed head, wide torso, narrow legs
+; Color 15 for outline/fill (palette-colored per monster type)
+; ----------------------------------------------------------------------------
+
+MonsterSprTiles:
+
+; Tile 2 (top-left): head + left torso
+;   Row 0: ..XXXX.. = $3C
+;   Row 1: .XXXXXX. = $7E
+;   Row 2: .XXXXXX. = $7E
+;   Row 3: .XXXXXX. = $7E
+;   Row 4: XXXXXXXX = $FF
+;   Row 5: XXXXXXXX = $FF
+;   Row 6: XXXXXXXX = $FF
+;   Row 7: XXXXXXXX = $FF
+.byte $3C,$3C, $7E,$7E, $7E,$7E, $7E,$7E, $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF
+.byte $3C,$3C, $7E,$7E, $7E,$7E, $7E,$7E, $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF
+
+; Tile 3 (top-right): head + right torso
+.byte $3C,$3C, $7E,$7E, $7E,$7E, $7E,$7E, $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF
+.byte $3C,$3C, $7E,$7E, $7E,$7E, $7E,$7E, $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF
+
+; Tile 18 (bottom-left): lower torso + left leg
+;   Row 0: XXXXXXXX = $FF
+;   Row 1: XXXXXXXX = $FF
+;   Row 2: .XXXXXX. = $7E
+;   Row 3: .XXXXXX. = $7E
+;   Row 4: ..XXXX.. = $3C
+;   Row 5: ..XX.XX. = $36
+;   Row 6: ..XX..XX = $33
+;   Row 7: ..XX..XX = $33
+.byte $FF,$FF, $FF,$FF, $7E,$7E, $7E,$7E, $3C,$3C, $36,$36, $33,$33, $33,$33
+.byte $FF,$FF, $FF,$FF, $7E,$7E, $7E,$7E, $3C,$3C, $36,$36, $33,$33, $33,$33
+
+; Tile 19 (bottom-right): lower torso + right leg
+.byte $FF,$FF, $FF,$FF, $7E,$7E, $7E,$7E, $3C,$3C, $6C,$6C, $CC,$CC, $CC,$CC
+.byte $FF,$FF, $FF,$FF, $7E,$7E, $7E,$7E, $3C,$3C, $6C,$6C, $CC,$CC, $CC,$CC
+
+MONSTER_SPR_SIZE = * - MonsterSprTiles ; 128 bytes
+
+; ----------------------------------------------------------------------------
+; Monster OBJ palettes — 4 palettes × 32 bytes = 128 bytes
+; Uploaded to CGRAM $80-$FF during dungeon
+; Pal 0: White (skeleton, mimic)
+; Pal 1: Red (orc, daemon, balrog)
+; Pal 2: Green (rat, viper, carrion)
+; Pal 3: Brown (thief, gremlin)
+; ----------------------------------------------------------------------------
+
+MonsterObjPalettes:
+    ; OBJ Palette 0: White
+    .word $0000             ; 0: transparent
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $7FFF             ; 15: White
+    ; OBJ Palette 1: Red
+    .word $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $001F             ; 15: Red
+    ; OBJ Palette 2: Green
+    .word $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $03E0             ; 15: Green
+    ; OBJ Palette 3: Brown
+    .word $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0193             ; 15: Brown
