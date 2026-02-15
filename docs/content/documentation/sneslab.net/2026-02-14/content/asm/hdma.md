@@ -1,0 +1,32 @@
+---
+title: "HDMA"
+reference_url: https://sneslab.net/wiki/HDMA
+categories:
+  - "ASM"
+  - "SNES_Hardware"
+  - "Video"
+  - "DMA"
+downloaded_at: 2026-02-14T13:17:18-08:00
+cleaned_at: 2026-02-14T17:52:01-08:00
+---
+
+**HDMA** also known as H-Blank Direct Memory Access or Horizontal Direct Memory Access is a type of DMA that does consecutive small transfers of 1-4 bytes instead of an entire block transfer at once. It's a hardware feature present on the SNES made mostly for manipulating certain PPU registers while the screen is being rendered for giving different rendering effects per scanline basis. It's executed during the H-blank period, which is when the PPU is preparing to render the next scanline of the screen output and some registers can be modified during the small pause.
+
+It's a feature extensively used in games for creating different effects of all types and combined with several PPU registers it allows for bypassing several limitations of the 4th generation consoles. Similar approaches are done as well in systems other than Super Nintendo, by using other timing tricks such as IRQ.
+
+Although it's used most of the time to update PPU registers, since HDMA is just a variation of the DMA, you can do any kind of transfer between the [address bus](/mw/index.php?title=address_bus&action=edit&redlink=1 "address bus (page does not exist)") A and B, including but not limited to APU I/O ports, WRAM registers and even do a backwards transfer (read from PPU and write to RAM).
+
+HDMA can interrupt GP-DMA and has higher priority than it.\[1] Even when forced blank is enabled, HDMA still happens.\[2]
+
+## Registers that can be used with HDMA
+
+Address Code Name Example Usage $2100 INIDISP Screen Display Register Darkness effect, Brightness control, [F-Blank HDMA](/mw/index.php?title=F-Blank_HDMA&action=edit&redlink=1 "F-Blank HDMA (page does not exist)") $2105 BGMODE BG Mode and Character Size Register Multiple screen modes at same time, Screen split $2106 MOSAIC Mosaic Register Partial censorship, Pseudo-3D projection $210D BG1HOFS BG1 Horizontal Scroll Registers Parallax backgrounds, Horizontal waves (water), Pseudo-3D projection, Shape modelation, Mirror effect, Progress bar, Laser projection $210E BG1VOFS BG1 Vertical Scroll Registers Vertical stretching, Vertical rotation, Vertical waves (fire), Screen split, Dissolving effect $210F BG2HOFS BG2 Horizontal Scroll Registers **See $210D** $2110 BG2VOFS BG2 Vertical Scroll Registers **See $210E** $2111 BG3HOFS BG3 Horizontal Scroll Registers **See $210D**, OAM-like per tile mode 2 manipulation $2112 BG3VOFS BG3 Vertical Scroll Registers **See $210E**, OAM-like per tile mode 2 manipulation $2113 BG4HOFS BG4 Horizontal Scroll Registers **See $210D** $2114 BG4VOFS BG4 Vertical Scroll Registers **See $210E** $211B M7A Mode 7 Matrix Registers Pseudo-3D projection, DSP-1 projection, Linear algebra calculation, Screen looping, Pipeline effect, Optical illusions $211C M7B Mode 7 Matrix Registers **See $211B** $211D M7C Mode 7 Matrix Registers **See $211B** $211E M7D Mode 7 Matrix Registers **See $211B** $211F M7X Mode 7 Matrix Registers **See $211B**, Screen distortion $2120 M7Y Mode 7 Matrix Registers **See $211F** $2121 CGADD CGRAM Address Register Palette manipulation, Color gradients $2122 CGDATA CGRAM Data Write Register **See $211B** $2126 WH0 Window Position Registers (WH0) Screen masking, Single-color screen shape/polygon rendering, Optical illusions, Black holes $2127 WH1 Window Position Registers (WH1) **See $2126** $2128 WH2 Window Position Registers (WH2) **See $2126** $2129 WH3 Window Position Registers (WH3) **See $2126** $212C TM Screen Destination Registers Screen masking, Hires rendering, Transparency effects, Blending effects $212D TS Screen Destination Registers **See $212C** $2132 COLDATA Color Math Registers Color gradients, transparency effects, brightness control
+
+### Unusual cases
+
+Address Code Name Example Usage $2107 BG1SC BG Tilemap Address Registers (BG1) Single layer status bar, Screen split $2108 BG2SC BG Tilemap Address Registers (BG2) **See $2107** $2109 BG3SC BG Tilemap Address Registers (BG3) **See $2107** $210A BG3SC BG Tilemap Address Registers (BG4) **See $2107** $210B BG12NBA BG Character Address Registers (BG1&2) **See $2107** $210C BG34NBA BG Character Address Registers (BG3&4) **See $2107** $211A M7SEL Mode 7 Settings Register N/A $2123 W12SEL Window Mask Settings Registers Black holes, Screen masking, Partial element screen masking $2124 W34SEL Window Mask Settings Registers **See $2123** $2125 WOBJSEL Window Mask Settings Registers **See $2123** $212A WBGLOG Window Mask Logic registers (BG) **See $2123** $212B WOBJLOG Window Mask Logic registers (OBJ) **See $2123** $212E TMW Window Mask Destination Registers Used together $212C, otherwise subscreen masking. $212F TSW Window Mask Destination Registers Used together $212D, otherwise subscreen masking. $2130 CGWSEL Color Math Registers N/A $2131 CGADSUB Color Math Registers N/A $2133 SETINI Screen Mode Select Register Undefined behavior $2134 MPYL Multiplication Result Registers Cumulative multiplications $2135 MPYM Multiplication Result Registers **See $2134** $2136 MPYH Multiplication Result Registers **See $2134** $2137 SLHV Software Latch Register Debug HDMA execution, Verify HDMA delay, Check for H-blank status $213B CGDATAREAD CGRAM Data Read Register N/A $213C OPHCT Scanline Location Registers (Horizontal) **See $2137** $213D OPVCT Scanline Location Registers (Vertical) N/A $213E STAT77 PPU Status Register N/A $213F STAT78 PPU Status Register N/A $2140 APUIO0 APU IO Registers [Sample streaming](/mw/index.php?title=Sample_streaming&action=edit&redlink=1 "Sample streaming (page does not exist)"), Software interrupts $2141 APUIO1 APU IO Registers **See $2140** $2142 APUIO2 APU IO Registers **See $2140** $2143 APUIO3 APU IO Registers **See $2140** $2180 WMDATA WRAM Data Register Co-processor polling at HDMA level, WRAM pattern filling, Code manipulation together IRQ. $2181 WMADDL WRAM Address Registers **See $2180** $2182 WMADDM WRAM Address Registers **See $2180** $2183 WMADDH WRAM Address Registers **See $2180**
+
+### References
+
+1. [page 2-17-1 of Book I](https://archive.org/details/SNESDevManual/book1/page/n83) of the official Super Nintendo development manual
+2. [https://problemkaputt.de/fullsnes.htm#snesdmaandhdmastartenableregisters](https://problemkaputt.de/fullsnes.htm#snesdmaandhdmastartenableregisters)

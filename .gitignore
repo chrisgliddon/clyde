@@ -8,5 +8,6 @@ docs/public/
 docs/resources/
 docs/.hugo_build.lock
 tools/clyde-cli/clyde
+references/mesen2/
 **/build/
 **/*.o

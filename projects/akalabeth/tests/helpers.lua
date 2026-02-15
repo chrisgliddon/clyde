@@ -171,4 +171,16 @@ function H.doChargen(S)
     H.waitFrames(60)
 end
 
+-- ============================================================================
+-- Screenshots
+-- ============================================================================
+
+function H.screenshot(filename)
+    local png = emu.takeScreenshot()
+    if not png then print("  WARN: screenshot failed"); return end
+    local f = io.open(filename, "wb")
+    if f then f:write(png); f:close(); print("  Screenshot: " .. filename)
+    else print("  WARN: can't write " .. filename) end
+end
+
 return H

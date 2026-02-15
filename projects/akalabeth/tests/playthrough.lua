@@ -9,6 +9,14 @@ local S = dofile(dir .. "symbols.lua")
 H.setMaxFrames(36000)  -- 10 minutes for full game
 H.init("Full Playthrough")
 
+-- Screenshot output directory (absolute path from script location)
+local SHOT_DIR = dir .. "../build/screenshots/"
+os.execute("mkdir -p " .. SHOT_DIR)
+
+local function shot(name)
+    H.screenshot(SHOT_DIR .. name)
+end
+
 -- Game state constants
 local GS_OVERWORLD = 0x01
 local GS_DUNGEON   = 0x02
@@ -79,6 +87,7 @@ local function doShop()
     goToTile(TILE_TOWN)
     if not waitState(GS_SHOP) then log("Can't enter shop"); return end
     H.waitFrames(5)
+    shot("07_shop.png")
 
     local gold = H.readWord(S.PlayerGold)
     local rapier = H.readByte(S.PlayerRapier)
@@ -120,6 +129,7 @@ local function doCastle()
     goToTile(TILE_CASTLE)
     if not waitState(GS_CASTLE) then log("Can't enter castle"); return false end
     H.waitFrames(5)
+    shot("06_castle.png")
 
     local quest = H.readByte(S.PlayerQuest)
     log(string.format("Castle: quest=$%02X", quest))
@@ -129,6 +139,7 @@ local function doCastle()
         H.waitFrames(10)
         if gs() == GS_GAMEOVER then
             log("VICTORY!")
+            shot("12_victory.png")
             return true
         end
         log(string.format("New quest=$%02X", H.readByte(S.PlayerQuest)))
@@ -194,6 +205,7 @@ local function faceAndAttack(mx, my, monIdx)
     H.waitFrames(3)
 
     -- Attack until monster dead
+    shot("09_dungeon_monster.png")
     for atk = 1, 80 do
         if gs() ~= GS_DUNGEON then return end
         if H.readByte(S.MonAlive + monIdx) == 0 then
@@ -202,6 +214,7 @@ local function faceAndAttack(mx, my, monIdx)
         end
         H.press("a")
         H.waitFrames(4)
+        if atk == 1 then shot("10_dungeon_combat.png") end
     end
 end
 
@@ -213,6 +226,7 @@ local function doDungeon()
     if gs() ~= GS_OVERWORLD then return false end
     goToTile(TILE_DUNGEON)
     if not waitState(GS_DUNGEON) then log("Can't enter dungeon"); return false end
+    shot("08_dungeon_entry.png")
 
     local quest = H.readByte(S.PlayerQuest)
     log(string.format("In dungeon. Quest=%d HP=%d", quest, H.readWord(S.PlayerHP)))
@@ -288,6 +302,7 @@ local function doDungeon()
     end
 
     H.waitFrames(60)  -- Wait for overworld gfx swap
+    shot("11_overworld_return.png")
     local q = H.readByte(S.PlayerQuest)
     return q >= 0x80
 end
@@ -297,7 +312,22 @@ end
 -- ============================================================================
 
 H.run(function()
-    H.doChargen(S)
+    -- Chargen (inlined for screenshots at each screen)
+    H.waitFrames(60)
+    shot("01_title.png")
+    H.press("start")                -- title → chargen seed
+    H.waitFrames(10)
+    shot("02_chargen_seed.png")
+    H.press("a")                    -- confirm seed → chargen stats
+    H.waitFrames(10)
+    shot("03_chargen_stats.png")
+    H.press("a")                    -- accept stats → chargen class
+    H.waitFrames(10)
+    shot("04_chargen_class.png")
+    H.press("a")                    -- confirm fighter → overworld
+    H.waitFrames(60)                -- fade transition
+    shot("05_overworld.png")
+
     log(string.format("Overworld. HP=%d Food=%d Gold=%d Quest=$%02X",
         H.readWord(S.PlayerHP), H.readWord(S.PlayerFood),
         H.readWord(S.PlayerGold), H.readByte(S.PlayerQuest)))

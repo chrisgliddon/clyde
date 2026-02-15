@@ -1,0 +1,20 @@
+---
+title: "Recommended Initial Settings"
+reference_url: https://sneslab.net/wiki/Recommended_Initial_Settings
+categories:
+  - "ASM"
+  - "Registers"
+  - "SNES_Hardware"
+downloaded_at: 2026-02-14T16:11:59-08:00
+cleaned_at: 2026-02-14T17:52:51-08:00
+---
+
+This table shows how Nintendo recommends beginners initialize the SNES registers. All values are hexadecimal.
+
+Some registers appear 8 bits wide to the 5A22 but actually hold 16 bits of data - these are known as "write-twice." Nintendo notates the recommended initial values of write-twice registers with the low byte on the left, and the high byte on the right (the same order the CPU should write to them) but which is opposite of most other 16-bit values.
+
+Address Common Name Description Data Notes 2100 INIDISP Initial Settings for Screen 8F Forced Blank 2101 OBSEL Object Size & Object Data Area Designation 00 2102 OAMADDL Address for Accessing OAM 00 2103 OAMADDH Address for Accessing OAM 00 2104 OAMDATA Data for OAM write OAM Data 2105 BGMODE Background Mode & Character Size Settings 00 2106 MOSAIC Size & Screen Designation for Mosaic Display 00 2107 BG1SC BG1 Screen Base & Size 00 2108 BG2SC BG2 Screen Base & Size 00 2109 BG3SC BG3 Screen Base & Size 00 210A BG4SC BG4 Screen Base & Size 00 210B BG12NBA Background Character Data Area Designation 00 210C BG34NBA Background Character Data Area Designation 00 210D BG1HOFS Horizontal Scroll Value Designation for BG1 00 00 write-twice 210E BG1VOFS Vertical Scroll Value Designation for BG1 00 00 write-twice 210F BG2HOFS Horizontal Scroll Value Designation for BG2 00 00 write-twice 2110 BG2VOFS Vertical Scroll Value Designation for BG2 00 00 write-twice 2111 BG3HOFS Horizontal Scroll Value Designation for BG3 00 00 write-twice 2112 BG3VOFS Vertical Scroll Value Designation for BG3 00 00 write-twice 2113 BG4HOFS Horizontal Scroll Value Designation for BG4 00 00 write-twice 2114 BG4VOFS Vertical Scroll Value Designation for BG4 00 00 write-twice 2115 VMAIN VRAM Address Increment Value Designation 80 2116 VMADDL Address for VRAM Read & Write 00 2117 VMADDH Address for VRAM Read & Write 00 2118 VMDATAL Data for VRAM Write VRAM Data 2119 VMDATAH Data for VRAM Write VRAM Data 211A M7SEL Initial Settings in Screen Mode 7 00 211B M7A Rotation/Scaling Parameter A 00 01 write-twice 211C M7B Rotation/Scaling Parameter B 00 00 write-twice 211D M7C Rotation/Scaling Parameter C 00 00 write-twice 211E M7D Rotation/Scaling Parameter D 00 01 write-twice 211F M7X Rotation/Scaling Center Coordinate X 00 00 write-twice 2120 M7Y Rotation/Scaling Center Coordinate Y 00 00 write-twice 2121 CGADD Address for CGRAM Read & Write 00 2122 CGDATA Data for CGRAM Write CG Data write-twice 2123 W12SEL Window Mask Settings 00 2124 W34SEL Window Mask Settings 00 2125 WOBJSEL Window Mask Settings 00 2126 WH0 Window Position Designation 00 2127 WH1 Window Position Designation 00 2128 WH2 Window Position Designation 00 2129 WH3 Window Position Designation 00 212A WBGLOG Mask Logic Settings 00 212B WOBJLOG Mask Logic Settings 00 212C TM Main Screen Designation 00 212D TS Sub Screen Designation 00 212E TMW Window Mask Designation for Main Screen 00 2130 CGWSEL Initial Settings for Fixed Color/Screen Addition 30 2131 CGADSUB Addition/Subtraction Designation for Each BG OBJ & Color 00 2132 COLDATA Fixed Color Data for Addition/Subtraction E0 2133 SETINI Screen Initial Setting 00 4200 NMITIMEN Enable flag for Vblank, Timer Interrupt & Controller Read 00 4201 WRIO Programmable I/O Port FF 4202 WRMPYA Multiplicand 00 4203 WRMPYB Multiplier 00 4204 WRDIVL Dividend (low byte) 00 4205 WRDIVH Dividend (high) 00 4206 WRDIVB Divisor 00 4207 HTIMEL H-Count Timer Settings 00 4208 HTIMEH H-Count Timer Settings 00 4209 VTIMEL V-Count Timer Setting 00 420A VTIMEH V-Count Timer Setting 00 420B MDMAEN Channel Designation for General Purpose DMA & Trigger 00 420C HDMAEN Channel Designation for HDMA 00 420D MEMSEL Memory-2 Waitstate Control 00
+
+### References
+
+- [page 2-26-1 of Book 1](https://archive.org/details/SNESDevManual/book1/page/n113/) of the official Super Nintendo development manual
