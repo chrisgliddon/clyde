@@ -12,6 +12,8 @@
 .importzp ChargenSeed
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT
 .import DungeonInit, PrngByte, SeedPrng
+.import SpriteSetEntry, SpriteClearAll
+.importzp SprX, SprY, SprTile, SprAttr, SprSize
 
 ; ============================================================================
 ; Constants
@@ -427,6 +429,7 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     rts
 
 @enter_dungeon:
+    jsr SpriteClearAll          ; hide player sprite
     lda #STATE_DUNGEON
     sta GameState
     jsr DungeonInit
@@ -569,25 +572,18 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
     jmp @cell_loop
 :
 
-    ; --- Player crosshair at center cell (red = palette 5, attr $14) ---
-    SET_XY16
-    ldx #734                ; cell 4 tilemap offset
-    lda #TILE_PLAYER
-    sta TilemapBuffer,x
-    lda #$14                ; Palette 5 (red)
-    sta TilemapBuffer+1,x
-    lda #TILE_PLAYER
-    sta TilemapBuffer+2,x
-    lda #$14
-    sta TilemapBuffer+3,x
-    lda #TILE_PLAYER
-    sta TilemapBuffer+64,x
-    lda #$14
-    sta TilemapBuffer+65,x
-    lda #TILE_PLAYER
-    sta TilemapBuffer+66,x
-    lda #$14
-    sta TilemapBuffer+67,x
+    ; --- Player sprite at screen center (16x16, red, OBJ palette 0) ---
+    lda #120                ; X pixel = center cell col 15 * 8
+    sta SprX
+    lda #88                 ; Y pixel = center cell row 11 * 8
+    sta SprY
+    stz SprTile             ; tile 0 in sprite name table
+    lda #$20                ; priority 2 (above BG1), palette 0, no flip
+    sta SprAttr
+    lda #$01                ; large size (16x16)
+    sta SprSize
+    lda #$00                ; sprite index 0
+    jsr SpriteSetEntry
 
     rts
 .endproc

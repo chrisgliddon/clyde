@@ -92,9 +92,68 @@ DAS1H       = $4316
     lda #$01
     sta SHADOW_BG34NBA
 
-    ; Enable BG1 + BG3 on main screen
-    lda #$05
+    ; Enable OBJ + BG1 + BG3 on main screen
+    lda #$15
     sta SHADOW_TM
+
+    ; --- Upload player sprite tiles to VRAM $4000 ---
+    ; Top row (tiles 0-1): 64 bytes → VRAM word $4000
+    lda #$80
+    sta VMAIN
+    stz VMADDL
+    lda #$40                ; VRAM word address $4000
+    sta VMADDH
+    lda #DMA_2REG_1W
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #<PlayerSprTiles
+    sta A1T0L
+    lda #>PlayerSprTiles
+    sta A1T0H
+    lda #^PlayerSprTiles
+    sta A1B0
+    lda #$40                ; 64 bytes
+    sta DAS0L
+    stz DAS0H
+    lda #$01
+    sta MDMAEN
+
+    ; Bottom row (tiles 16-17): 64 bytes → VRAM word $4100
+    stz VMADDL
+    lda #$41                ; VRAM word address $4100
+    sta VMADDH
+    lda #<(PlayerSprTiles + 64)
+    sta A1T0L
+    lda #>(PlayerSprTiles + 64)
+    sta A1T0H
+    lda #^(PlayerSprTiles + 64)
+    sta A1B0
+    lda #$40
+    sta DAS0L
+    stz DAS0H
+    lda #$01
+    sta MDMAEN
+
+    ; --- Upload OBJ palette 0 to CGRAM $80 ---
+    lda #$80                ; OBJ palette 0 starts at CGRAM word $80
+    sta CGADD
+    lda #DMA_1REG_1W
+    sta DMAP0
+    lda #$22                ; CGDATA
+    sta BBAD0
+    lda #<ObjPalette0
+    sta A1T0L
+    lda #>ObjPalette0
+    sta A1T0H
+    lda #^ObjPalette0
+    sta A1B0
+    lda #<OBJ_PAL0_SIZE
+    sta DAS0L
+    lda #>OBJ_PAL0_SIZE
+    sta DAS0H
+    lda #$01
+    sta MDMAEN
 
     rts
 .endproc
@@ -774,3 +833,47 @@ DungeonPalette:
     .word $001F             ; 15: Red
 
 DUNGEON_PAL_SIZE = * - DungeonPalette ; 128 bytes (4 palettes × 32)
+
+; ----------------------------------------------------------------------------
+; Player sprite tiles — 4bpp 16x16 crosshair (4 × 8x8 tiles = 128 bytes)
+; Arranged as: tiles 0,1 (top row) then tiles 16,17 (bottom row)
+; Color 15 (all bitplanes set) for crosshair pixels
+; 2-pixel-wide cross centered in the 16x16 area
+; ----------------------------------------------------------------------------
+
+PlayerSprTiles:
+
+; Tile 0 (top-left): vertical bar right edge + horizontal bar bottom
+; Pattern: $03 (rows 0-5), $FF (rows 6-7)
+.byte $03,$03, $03,$03, $03,$03, $03,$03, $03,$03, $03,$03, $FF,$FF, $FF,$FF
+.byte $03,$03, $03,$03, $03,$03, $03,$03, $03,$03, $03,$03, $FF,$FF, $FF,$FF
+
+; Tile 1 (top-right): vertical bar left edge + horizontal bar bottom
+; Pattern: $C0 (rows 0-5), $FF (rows 6-7)
+.byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $FF,$FF, $FF,$FF
+.byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $FF,$FF, $FF,$FF
+
+; Tile 2 (bottom-left = VRAM tile 16): horizontal bar top + vertical bar right
+; Pattern: $FF (rows 0-1), $03 (rows 2-7)
+.byte $FF,$FF, $FF,$FF, $03,$03, $03,$03, $03,$03, $03,$03, $03,$03, $03,$03
+.byte $FF,$FF, $FF,$FF, $03,$03, $03,$03, $03,$03, $03,$03, $03,$03, $03,$03
+
+; Tile 3 (bottom-right = VRAM tile 17): horizontal bar top + vertical bar left
+; Pattern: $FF (rows 0-1), $C0 (rows 2-7)
+.byte $FF,$FF, $FF,$FF, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0
+.byte $FF,$FF, $FF,$FF, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0
+
+PLAYER_SPR_SIZE = * - PlayerSprTiles ; 128 bytes
+
+; ----------------------------------------------------------------------------
+; OBJ palette 0 — red crosshair (matches BG1 palette 5)
+; CGRAM $80-$8F (16 colors × 2 bytes = 32 bytes)
+; ----------------------------------------------------------------------------
+
+ObjPalette0:
+    .word $0000             ; 0: transparent
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $001F             ; 15: Red
+
+OBJ_PAL0_SIZE = * - ObjPalette0 ; 32 bytes

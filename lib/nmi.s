@@ -14,6 +14,7 @@
 
 ; Import joypad (called from main loop, not NMI)
 .import ReadJoypad
+.import SpriteFlushOam
 
 ; ============================================================================
 ; Zero Page variables
@@ -156,6 +157,9 @@ DmaCount:   .res 1          ; Number of queued entries (0 = empty)
 
     SET_XY8
 @no_dma:
+
+    ; --- OAM flush ---
+    jsr SpriteFlushOam
 
     ; --- HDMA ---
     lda SHADOW_HDMAEN

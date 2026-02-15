@@ -20,6 +20,7 @@
 .import GfxUploadOverworld, GfxUploadFont
 .import SaveGame, LoadGame, EraseSave
 .import AudioInit, PlaySfx
+.import SpriteInit
 .include "sfx_ids.inc"
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
@@ -92,6 +93,9 @@ STATE_CHARGEN_CLASS = $09
     tcd                     ; Direct page = $0000
     SET_AXY8
     jsr InitSNES
+    jsr SpriteInit          ; Clear all OAM entries
+    lda #$02                ; OBJ base VRAM $4000, size 8x8/16x16
+    sta SHADOW_OBSEL
     jsr AudioInit           ; Upload SPC driver to ARAM
     ; Keep force blank via shadow until init complete
     lda #FORCE_BLANK
