@@ -137,6 +137,15 @@ DAS0L       = $4305     ; DMA size low
 DAS0H       = $4306     ; DMA size high
 
 ; ============================================================================
+; APU Communication Registers ($2140-$2143)
+; ============================================================================
+
+APUIO0      = $2140     ; APU I/O port 0 (command/handshake)
+APUIO1      = $2141     ; APU I/O port 1 (data byte)
+APUIO2      = $2142     ; APU I/O port 2 (address low / param)
+APUIO3      = $2143     ; APU I/O port 3 (address high / param)
+
+; ============================================================================
 ; DMA Transfer Mode Constants
 ; ============================================================================
 

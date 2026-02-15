@@ -16,6 +16,8 @@
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_A, JOY_B, JOY_SELECT
 .import TilemapBuffer, GfxUploadDungeon, GfxUploadOverworld
 .import FadeOut, FadeIn
+.import PlaySfx
+.include "sfx_ids.inc"
 .import UiSetMessage, UiMsgInit, UiMsgAppendStr, UiMsgAppendNum
 .import UiMsgAppendMonName, UiMsgShow
 .import str_msg_hit, str_msg_miss, str_msg_killed, str_msg_quest
@@ -541,6 +543,8 @@ MonType:        .res MAX_MONSTERS
 
 @hit_trap:
     ; Original: trap drops player to next dungeon level
+    lda #SFX_TRAP
+    jsr PlaySfx
     lda #DTILE_FLOOR
     sta DungeonGrid,x       ; Remove trap
     lda DungFloor
@@ -565,6 +569,8 @@ MonType:        .res MAX_MONSTERS
     jmp @place_at_up_stairs
 
 @open_chest:
+    lda #SFX_CHEST
+    jsr PlaySfx
     lda #DTILE_FLOOR
     sta DungeonGrid,x       ; Remove chest
     ; Award gold: 10-40
@@ -601,6 +607,8 @@ MonType:        .res MAX_MONSTERS
     jmp @render_exit
 
 @go_up:
+    lda #SFX_STAIRS
+    jsr PlaySfx
     lda DungFloor
     beq @exit_dungeon       ; Floor 0 stairs up = exit
     dec DungFloor
@@ -620,7 +628,9 @@ MonType:        .res MAX_MONSTERS
     cmp #MAX_FLOORS - 1
     bne :+
     jmp @render_exit        ; Can't go deeper
-:   inc DungFloor
+:   lda #SFX_STAIRS
+    jsr PlaySfx
+    inc DungFloor
     ; Message: "DESCENDED"
     lda #<str_msg_down
     sta UI_TempPtr
@@ -788,6 +798,8 @@ MonType:        .res MAX_MONSTERS
     sbc DG_TempC
     sta MonHP,x
     ; Message: "HIT FOR N"
+    lda #SFX_HIT
+    jsr PlaySfx
     SET_XY16
     jsr UiMsgInit
     lda #<str_msg_hit
@@ -802,6 +814,8 @@ MonType:        .res MAX_MONSTERS
     jmp @render_exit
 @kill_mon:
     ; Monster killed!
+    lda #SFX_KILL
+    jsr PlaySfx
     lda #$00
     sta MonAlive,x
     ; Clear from grid
@@ -883,6 +897,8 @@ MonType:        .res MAX_MONSTERS
 
 @atk_miss_no_mon:
 @atk_miss:
+    lda #SFX_MISS
+    jsr PlaySfx
     ; Message: "YOU MISS!"
     lda #<str_msg_miss
     sta UI_TempPtr
@@ -953,6 +969,8 @@ MonType:        .res MAX_MONSTERS
     jmp @amulet_consume
 
 @amulet_normal:
+    lda #SFX_MAGIC
+    jsr PlaySfx
     ; Mage: random of 3 effects (ladder up, ladder down, magic kill)
     ; Fighter: magic kill only
     ; Random of 3 effects (both classes)
@@ -1674,6 +1692,9 @@ MonType:        .res MAX_MONSTERS
     lda #$0000
 :   sta PlayerHP
     SET_A8
+    ; SFX: monster hit player
+    lda #SFX_HURT
+    jsr PlaySfx
     ; Message: "MONSTER HITS! N DMG"
     SET_XY16
     jsr UiMsgInit

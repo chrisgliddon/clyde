@@ -19,6 +19,8 @@
 .import UiClearBg3, UiTickMessage
 .import GfxUploadOverworld, GfxUploadFont
 .import SaveGame, LoadGame, EraseSave
+.import AudioInit, PlaySfx
+.include "sfx_ids.inc"
 .importzp MapDirty, PlayerX, PlayerY
 .importzp StatsDirty
 .importzp PlayerHP, PlayerFood, PlayerGold, PlayerQuest
@@ -40,7 +42,7 @@
 
 .export ResetHandler
 .export FadeOut, FadeIn
-.exportzp GameState, ChargenSeed, ShopCursor
+.exportzp GameState, ChargenSeed, ShopCursor, AudioEnabled
 
 CART_TYPE = $02             ; ROM + SRAM + battery
 SRAM_SIZE = $03             ; 8KB (2^3)
@@ -57,6 +59,7 @@ ChargenSeed:    .res 2          ; Lucky number (auto-increments)
 ShopCursor:     .res 1          ; 0-5: selected item in shop
 FadeTarget:     .res 1
 FadeActive:     .res 1
+AudioEnabled:   .res 1          ; Nonzero after AudioInit succeeds
 
 ; ============================================================================
 ; Constants
@@ -89,6 +92,7 @@ STATE_CHARGEN_CLASS = $09
     tcd                     ; Direct page = $0000
     SET_AXY8
     jsr InitSNES
+    jsr AudioInit           ; Upload SPC driver to ARAM
     ; Keep force blank via shadow until init complete
     lda #FORCE_BLANK
     sta SHADOW_INIDISP
@@ -562,7 +566,10 @@ STATE_CHARGEN_CLASS = $09
     jmp @shop_done
 @shop_no_gold:
     SET_A8
+    jmp @loop
 @shop_done:
+    lda #SFX_BUY
+    jsr PlaySfx
     lda #$01
     sta StatsDirty
     jmp @loop
@@ -622,6 +629,8 @@ STATE_CHARGEN_CLASS = $09
     jmp @loop
 
 @victory:
+    lda #SFX_QUEST
+    jsr PlaySfx
     ; Increment difficulty for next playthrough (cap at 10)
     lda DiffLevel
     cmp #10
@@ -641,6 +650,8 @@ STATE_CHARGEN_CLASS = $09
     bit #JOY_START
     SET_A8
     beq :+
+    lda #SFX_GAMEOVER
+    jsr PlaySfx
     lda #STATE_TITLE
     sta GameState
     jsr EraseSave

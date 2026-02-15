@@ -6,8 +6,8 @@ CFG      = config/lorom128k.cfg
 LIBDIR   = ../../lib
 
 # Source files (order matters for linking)
-SRC      = src/main.s src/overworld.s src/dungeon.s src/combat.s src/ui.s src/gfx.s src/save.s
-LIBSRC   = $(LIBDIR)/init.s $(LIBDIR)/joypad.s $(LIBDIR)/nmi.s
+SRC      = src/main.s src/overworld.s src/dungeon.s src/combat.s src/ui.s src/gfx.s src/save.s src/audio.s src/audio_data.s
+LIBSRC   = $(LIBDIR)/init.s $(LIBDIR)/joypad.s $(LIBDIR)/nmi.s $(LIBDIR)/spc.s
 
 # Object files
 OBJ      = $(SRC:.s=.o) $(patsubst $(LIBDIR)/%.s,build/lib_%.o,$(LIBSRC))
