@@ -1,11 +1,11 @@
 ; audio.s — Akalabeth audio interface (counter-based command protocol)
-; Provides AudioInit, PlaySfx for game code.
+; Provides AudioInit, PlaySfx, SetAmbience for game code.
 ; All calls must happen from main loop (never NMI).
 ;
 ; Protocol:
 ;   APUIO0 ($2140): command counter — change triggers SPC to process
-;   APUIO1 ($2141): command byte (CMD_PLAY=$01, CMD_STOP=$02)
-;   APUIO2 ($2142): SFX ID
+;   APUIO1 ($2141): command byte (CMD_PLAY=$01, CMD_STOP=$02, CMD_AMBIENCE=$03)
+;   APUIO2 ($2142): SFX ID or ambience type
 ;   SPC echoes counter to APUIO0 to acknowledge
 
 .include "macros.s"
@@ -14,7 +14,7 @@
 ; Exports
 ; ============================================================================
 
-.export AudioInit, PlaySfx
+.export AudioInit, PlaySfx, SetAmbience
 
 ; ============================================================================
 ; Imports
@@ -29,8 +29,9 @@
 ; Command constants (must match spc/engine.s)
 ; ============================================================================
 
-CMD_PLAY    = $01
-CMD_STOP    = $02
+CMD_PLAY      = $01
+CMD_STOP      = $02
+CMD_AMBIENCE  = $03
 
 ; ============================================================================
 ; Zero page
@@ -137,5 +138,45 @@ CmdCounter: .res 1          ; command counter (sent to SPC via APUIO0)
     cmp APUIO0
     bne @wait_ack
 @done:
+    rts
+.endproc
+
+; ============================================================================
+; SetAmbience — set ambient drone type
+; Input: A = ambience type (0=off, 1=overworld, 2=dungeon)
+; Clobbers: A. Preserves: X, Y
+; ============================================================================
+.proc SetAmbience
+    SET_A8
+    pha
+    lda AudioEnabled
+    beq @skip
+
+    ; Write ambience type to APUIO2
+    pla
+    sta APUIO2
+
+    ; Write command byte
+    lda #CMD_AMBIENCE
+    sta APUIO1
+
+    ; Increment counter (skip 0)
+    lda CmdCounter
+    inc a
+    bne :+
+    inc a
+:   sta CmdCounter
+
+    ; Trigger
+    sta APUIO0
+
+    ; Wait for ack
+@wait_ack:
+    cmp APUIO0
+    bne @wait_ack
+
+    rts
+@skip:
+    pla
     rts
 .endproc

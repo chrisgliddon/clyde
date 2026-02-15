@@ -11,7 +11,7 @@
 .importzp PlayerFood, PlayerHP
 .importzp ChargenSeed
 .import JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT
-.import DungeonInit, PrngByte, SeedPrng
+.import DungeonInit, PrngByte, SeedPrng, SetAmbience
 .import SpriteSetEntry, SpriteClearAll
 .importzp SprX, SprY, SprTile, SprAttr, SprSize
 
@@ -430,6 +430,8 @@ TilemapBuffer:  .res 2048       ; 32x32 tilemap (16-bit entries)
 
 @enter_dungeon:
     jsr SpriteClearAll          ; hide player sprite
+    lda #$02
+    jsr SetAmbience             ; dungeon ambient drone
     lda #STATE_DUNGEON
     sta GameState
     jsr DungeonInit

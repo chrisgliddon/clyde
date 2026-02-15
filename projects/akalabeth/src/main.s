@@ -19,7 +19,7 @@
 .import UiClearBg3, UiTickMessage
 .import GfxUploadOverworld, GfxUploadFont
 .import SaveGame, LoadGame, EraseSave
-.import AudioInit, PlaySfx
+.import AudioInit, PlaySfx, SetAmbience
 .import SpriteInit
 .import PalFxTick, PalFxFlash, PalFxHeal, PalFxWaterCycle, PalFxTorchFlicker
 .import HdmaSetOverworld, HdmaDisable
@@ -400,6 +400,8 @@ STATE_CHARGEN_CLASS = $09
     jsr FadeOut
     jsr GfxUploadOverworld
     jsr HdmaSetOverworld
+    lda #$01
+    jsr SetAmbience          ; overworld ambient drone
     jsr FadeIn
     jsr OverworldRender
     lda #$01
@@ -437,6 +439,8 @@ STATE_CHARGEN_CLASS = $09
     jsr FadeOut
     jsr GfxUploadOverworld
     jsr HdmaSetOverworld
+    lda #$01
+    jsr SetAmbience          ; overworld ambient drone
     jsr FadeIn
     jsr OverworldRender
     lda #$01
@@ -485,6 +489,8 @@ STATE_CHARGEN_CLASS = $09
     jsr FadeOut
     jsr GfxUploadOverworld
     jsr HdmaSetOverworld
+    lda #$01
+    jsr SetAmbience          ; overworld ambient drone
     jsr FadeIn
     jsr OverworldRender
     lda #STATE_OVERWORLD
@@ -605,6 +611,8 @@ STATE_CHARGEN_CLASS = $09
     jsr FadeOut
     jsr GfxUploadOverworld
     jsr HdmaSetOverworld
+    lda #$01
+    jsr SetAmbience          ; overworld ambient drone
     jsr FadeIn
     jsr OverworldRender
     lda #STATE_OVERWORLD
@@ -665,6 +673,8 @@ STATE_CHARGEN_CLASS = $09
     bit #JOY_START
     SET_A8
     beq :+
+    lda #$00
+    jsr SetAmbience          ; silence ambient drone
     lda #SFX_GAMEOVER
     jsr PlaySfx
     jsr HdmaDisable
