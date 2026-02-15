@@ -49,6 +49,7 @@
 
 CART_TYPE = $02             ; ROM + SRAM + battery
 SRAM_SIZE = $03             ; 8KB (2^3)
+ROM_SIZE_BYTE = $07         ; 128KB ROM (4 LoROM banks × 32KB)
 
 .include "header.inc"
 

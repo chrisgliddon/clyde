@@ -46,7 +46,10 @@
         SRAM_SIZE = $00
     .endif
     .byte CART_TYPE          ; Cartridge type (default: ROM only)
-    .byte $07               ; ROM size: 128KB (2^7 = 128K)
+    .ifndef ROM_SIZE_BYTE
+        ROM_SIZE_BYTE = $07
+    .endif
+    .byte ROM_SIZE_BYTE      ; ROM size: 2^N KB (default: $07=128KB)
     .byte SRAM_SIZE          ; RAM size (default: 0KB)
     .byte $01               ; Country: North America
     .byte $00               ; Developer ID

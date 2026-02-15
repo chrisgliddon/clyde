@@ -2,7 +2,7 @@
 # Assembler: ca65 | Linker: ld65 (cc65 suite)
 
 ROM      = build/akalabeth.smc
-CFG      = config/lorom128k.cfg
+CFG      = config/lorom256k.cfg
 LIBDIR   = ../../lib
 
 # Source files (order matters for linking)

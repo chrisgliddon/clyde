@@ -342,7 +342,7 @@
 ; RODATA — Tile data and palettes
 ; ============================================================================
 
-.segment "RODATA"
+.segment "GFXDATA"
 
 ; ----------------------------------------------------------------------------
 ; Overworld tiles — 4bpp, 8x8 pixels, 32 bytes each
