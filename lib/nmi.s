@@ -105,11 +105,13 @@ DmaCount:   .res 1          ; Number of queued entries (0 = empty)
     lda SHADOW_BG3VOFS+1
     sta BG3VOFS
 
-    ; Layer enables and color math
+    ; Layer enables, window mask, and color math
     lda SHADOW_TM
     sta TM
     lda SHADOW_TS
     sta TS
+    lda SHADOW_TMW
+    sta TMW
     lda SHADOW_CGWSEL
     sta CGWSEL
     lda SHADOW_CGADSUB
@@ -193,9 +195,16 @@ DmaCount:   .res 1          ; Number of queued entries (0 = empty)
 .endproc
 
 ; ============================================================================
-; IrqHandler — Unused stub
+; IrqHandler — V-count IRQ at scanline 16 (HUD boundary)
+; Disables BG1 window masking so BG1 is visible below the HUD.
+; NMI re-enables TMW each frame for the next HUD area.
 ; ============================================================================
 
 .proc IrqHandler
+    pha
+    sep #$20                ; Force A8
+    lda TIMEUP              ; Acknowledge IRQ (read clears flag)
+    stz TMW                 ; Disable BG1 windowing for game area
+    pla
     rti
 .endproc

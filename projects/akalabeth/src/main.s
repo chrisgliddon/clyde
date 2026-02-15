@@ -666,6 +666,7 @@ STATE_CHARGEN_CLASS = $09
     beq :+
     lda #SFX_GAMEOVER
     jsr PlaySfx
+    jsr HdmaDisable
     lda #STATE_TITLE
     sta GameState
     jsr EraseSave

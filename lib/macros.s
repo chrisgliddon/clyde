@@ -182,6 +182,7 @@ VMAIN_INC32     = $81   ; Increment by 32 (for tilemap row writes)
 ; ============================================================================
 
 NMITIMEN_NMI    = $80   ; Enable NMI
+NMITIMEN_VIRQ   = $10   ; Enable V-count IRQ
 NMITIMEN_JOY    = $01   ; Enable auto-joypad read
 NMITIMEN_NMIJOY = $81   ; Enable both NMI + auto-joypad
 
@@ -214,3 +215,4 @@ SHADOW_CGWSEL   = $58   ; → $2130 Color math control A
 SHADOW_CGADSUB  = $59   ; → $2131 Color math control B
 SHADOW_COLDATA  = $5A   ; → $2132 Fixed color (3 bytes: R, G, B)
 SHADOW_HDMAEN   = $5D   ; → $420C HDMA enable
+SHADOW_TMW      = $5E   ; → $212E Main screen window mask

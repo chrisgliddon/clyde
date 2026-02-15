@@ -46,6 +46,20 @@ HdmaGradient:   .res 1      ; 0=off, 1=overworld sky, 2=dungeon depth
     sta SHADOW_HDMAEN
     lda #$01
     sta HdmaGradient
+    ; Window masking: hide BG1 in HUD area (lines 0-15)
+    lda #$03                    ; Window 1 enabled + inverted for BG1
+    sta W12SEL
+    stz WH0                     ; Left = 0
+    lda #$FF
+    sta WH1                     ; Right = 255 (full width)
+    lda #$01                    ; BG1 windowed on main screen
+    sta SHADOW_TMW
+    ; V-count IRQ at scanline 16
+    lda #16
+    sta VTIMEL
+    stz VTIMEH
+    lda #(NMITIMEN_NMI | NMITIMEN_VIRQ | NMITIMEN_JOY)
+    sta NMITIMEN
     rts
 .endproc
 
@@ -72,6 +86,20 @@ HdmaGradient:   .res 1      ; 0=off, 1=overworld sky, 2=dungeon depth
     sta SHADOW_HDMAEN
     lda #$02
     sta HdmaGradient
+    ; Window masking: hide BG1 in HUD area
+    lda #$03
+    sta W12SEL
+    stz WH0
+    lda #$FF
+    sta WH1
+    lda #$01
+    sta SHADOW_TMW
+    ; V-count IRQ at scanline 16
+    lda #16
+    sta VTIMEL
+    stz VTIMEH
+    lda #(NMITIMEN_NMI | NMITIMEN_VIRQ | NMITIMEN_JOY)
+    sta NMITIMEN
     rts
 .endproc
 
@@ -84,6 +112,11 @@ HdmaGradient:   .res 1      ; 0=off, 1=overworld sky, 2=dungeon depth
     and #$FD                    ; Clear bit 1 (channel 1)
     sta SHADOW_HDMAEN
     stz HdmaGradient
+    ; Disable window masking and V-count IRQ
+    stz W12SEL
+    stz SHADOW_TMW
+    lda #NMITIMEN_NMIJOY        ; NMI + joypad only (no VIRQ)
+    sta NMITIMEN
     rts
 .endproc
 
@@ -95,10 +128,11 @@ HdmaGradient:   .res 1      ; 0=off, 1=overworld sky, 2=dungeon depth
 
 .segment "RODATA"
 
-; Blue sky gradient: 96 lines of decreasing blue, 128 lines ground (no tint)
+; Blue sky gradient: 16-line HUD header (no tint), then sky gradient, then ground
+; Total: 16 + 16*5 + 127 + 1 = 224 scanlines
 SkyGradientTable:
+    .byte $90, $20              ; 16 lines: blue intensity 0 (HUD area)
     .byte $90, $2A              ; 16 lines: blue intensity 10
-    .byte $90, $29              ; 16 lines: blue intensity 9
     .byte $90, $27              ; 16 lines: blue intensity 7
     .byte $90, $25              ; 16 lines: blue intensity 5
     .byte $90, $23              ; 16 lines: blue intensity 3
@@ -107,10 +141,12 @@ SkyGradientTable:
     .byte $81, $20              ; 1 line: blue intensity 0
     .byte $00                   ; End
 
-; Warm dungeon gradient: red decreasing with depth
+; Warm dungeon gradient: 16-line HUD header, then red decreasing with depth
+; Total: 16 + 32*2 + 64 + 80 = 224 scanlines
 DungeonGradientTable:
-    .byte $A0, $86              ; 32 lines: red intensity 6
+    .byte $90, $80              ; 16 lines: red intensity 0 (HUD area)
     .byte $A0, $85              ; 32 lines: red intensity 5
+    .byte $A0, $84              ; 32 lines: red intensity 4
     .byte $C0, $83              ; 64 lines: red intensity 3
-    .byte $E0, $82              ; 96 lines: red intensity 2
+    .byte $D0, $82              ; 80 lines: red intensity 2
     .byte $00                   ; End
