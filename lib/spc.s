@@ -111,6 +111,8 @@
 
 ; ============================================================================
 ; SpcBootApu — upload entire SPC image from ROM to ARAM, start execution
+; Handles multi-page uploads (IPL protocol requires new SpcBeginUpload every
+; 256 bytes when the internal counter wraps).
 ; Call during init (force blank). Clobbers: A, X, Y
 ; ============================================================================
 .proc SpcBootApu
@@ -123,15 +125,33 @@
     ldy #$0200
     jsr SpcBeginUpload
 
-    ; Upload SPC image byte-by-byte
+    ; Upload SPC image in 256-byte pages
     ldx #0
 @loop:
     lda f:SpcImage,x
     jsr SpcUploadByte
     inx
     cpx SpcImageSize
-    bne @loop
+    beq @done
 
+    ; Check if Y wrapped (256-byte page boundary)
+    tya
+    bne @loop               ; low byte != 0 → same page
+
+    ; Y low byte wrapped to 0 → start new upload block
+    ; Compute next ARAM destination = $0200 + X
+    phx
+    SET_A16
+    txa
+    clc
+    adc #$0200
+    tay                     ; Y = next ARAM address
+    SET_A8
+    jsr SpcBeginUpload
+    plx
+    jmp @loop
+
+@done:
     ; Start execution
     ldy SpcEntryAddr
     jsr SpcExecute

@@ -5,6 +5,11 @@ ROM      = build/akalabeth.smc
 CFG      = config/lorom256k.cfg
 LIBDIR   = ../../lib
 
+# SPC700 audio engine
+SPCBIN   = build/spc700.bin
+SPCCFG   = spc/spc700.cfg
+SPCSRC   = spc/engine.s
+
 # Source files (order matters for linking)
 SRC      = src/main.s src/overworld.s src/dungeon.s src/combat.s src/ui.s src/gfx.s src/save.s src/audio.s src/audio_data.s src/palette.s src/hdma.s
 LIBSRC   = $(LIBDIR)/init.s $(LIBDIR)/joypad.s $(LIBDIR)/nmi.s $(LIBDIR)/spc.s $(LIBDIR)/sprites.s $(LIBDIR)/hwmath.s
@@ -24,8 +29,16 @@ TESTS    = tests/test_chargen.lua tests/test_overworld.lua tests/test_dungeon.lu
 
 all: $(ROM)
 
+# SPC700 binary must be built before audio_data.s is assembled
+src/audio_data.o: $(SPCBIN)
+
 $(ROM): $(OBJ) $(CFG) | build
 	$(LD65) -C $(CFG) -o $@ -Ln build/akalabeth.sym --dbgfile build/akalabeth.dbg $(OBJ)
+
+# Build SPC700 engine: assemble + link to flat binary
+$(SPCBIN): $(SPCSRC) $(SPCCFG) $(LIBDIR)/spc-ca65.inc | build
+	$(CA65) --cpu none -I $(LIBDIR) -o build/spc700.o $(SPCSRC)
+	$(LD65) -C $(SPCCFG) -o $@ build/spc700.o
 
 test: $(ROM)
 	@for t in $(TESTS); do \

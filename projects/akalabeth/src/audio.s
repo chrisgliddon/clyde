@@ -1,6 +1,12 @@
-; audio.s — Akalabeth audio interface (SNESGSS command protocol)
+; audio.s — Akalabeth audio interface (counter-based command protocol)
 ; Provides AudioInit, PlaySfx for game code.
 ; All calls must happen from main loop (never NMI).
+;
+; Protocol:
+;   APUIO0 ($2140): command counter — change triggers SPC to process
+;   APUIO1 ($2141): command byte (CMD_PLAY=$01, CMD_STOP=$02)
+;   APUIO2 ($2142): SFX ID
+;   SPC echoes counter to APUIO0 to acknowledge
 
 .include "macros.s"
 
@@ -20,19 +26,18 @@
 .include "sfx_ids.inc"
 
 ; ============================================================================
-; SNESGSS Command Constants
+; Command constants (must match spc/engine.s)
 ; ============================================================================
 
-GSS_NOOP        = $00
-GSS_SUBCOMMAND  = $01
-GSS_VOLUME      = $02
-GSS_SFX_PLAY    = $04
-GSS_INITIALIZE  = $01   ; SUBCOMMAND + (INITIALIZE << 4)
-GSS_STOP_ALL    = $51   ; SUBCOMMAND + (STOP_ALL_SOUNDS << 4)
+CMD_PLAY    = $01
+CMD_STOP    = $02
 
-; Default SFX volume and pan
-SFX_VOL_DEFAULT = $7F   ; ~50% volume
-SFX_PAN_CENTER  = $80   ; Center pan
+; ============================================================================
+; Zero page
+; ============================================================================
+
+.segment "ZEROPAGE"
+CmdCounter: .res 1          ; command counter (sent to SPC via APUIO0)
 
 ; ============================================================================
 ; Code
@@ -41,36 +46,23 @@ SFX_PAN_CENTER  = $80   ; Center pan
 .segment "CODE"
 
 ; ============================================================================
-; AudioInit — upload SPC driver to ARAM, send INITIALIZE command
+; AudioInit — upload SPC driver to ARAM, wait for ready signal
 ; Call once after InitSNES (during force blank). Clobbers: A, X, Y
 ; ============================================================================
 .proc AudioInit
     SET_AXY8
     jsr SpcBootApu
 
-    ; Send INITIALIZE command via GSS protocol
-    ; Wait for SPC to signal ready (APUIO0 == 0)
+    ; Wait for SPC engine to signal ready (APUIO0 == 0)
 @wait_ready:
     lda APUIO0
     bne @wait_ready
 
-    ; Store command params: no params for INITIALIZE
-    stz APUIO2
-    stz APUIO3
+    ; Clear 65816's output port so SPC doesn't see stale SpcExecute value
+    stz APUIO0
 
-    ; Send command byte to APUIO1, then trigger via APUIO0
-    lda #GSS_INITIALIZE
-    xba                     ; High byte of 16-bit A = command
-    lda #$01                ; Low byte = nonzero trigger (any nonzero)
-    SET_A16
-    sta APUIO0              ; Write APUIO0 + APUIO1 atomically
-    SET_A8
-
-    ; Wait for acknowledgement (APUIO3 changes)
-    lda APUIO3
-@wait_ack:
-    cmp APUIO3
-    beq @wait_ack
+    ; Initialize counter (must match SPC's LastCounter = 0)
+    stz CmdCounter
 
     ; Mark audio as enabled
     lda #$01
@@ -90,32 +82,27 @@ SFX_PAN_CENTER  = $80   ; Center pan
     lda AudioEnabled
     beq @skip
 
-    ; Wait for SPC to be ready for a command (APUIO0 == 0)
-@wait:
-    lda APUIO0
-    bne @wait
-
-    ; Set up SFX_PLAY command:
-    ;   APUIO1 = volume
-    ;   APUIO2 = effect number
-    ;   APUIO3 = pan
+    ; Write SFX ID to APUIO2
     pla
-    sta APUIO2              ; Effect number
+    sta APUIO2
 
-    lda #SFX_VOL_DEFAULT
-    sta APUIO1              ; Volume (written to APUIO1 directly for SFX)
+    ; Write command byte to APUIO1
+    lda #CMD_PLAY
+    sta APUIO1
 
-    lda #SFX_PAN_CENTER
-    sta APUIO3              ; Pan
+    ; Increment counter (skip 0 — 0 means "no command")
+    lda CmdCounter
+    inc a
+    bne :+
+    inc a               ; skip 0
+:   sta CmdCounter
 
-    ; Send SFX_PLAY command via APUIO0
-    ; GSS protocol: write command to APUIO0, SPC reads and acknowledges
-    lda #GSS_SFX_PLAY
+    ; Write counter to APUIO0 — this triggers the SPC to process
     sta APUIO0
 
-    ; Wait for acknowledgement (APUIO0 returns to 0)
+    ; Wait for SPC to echo counter back (acknowledgement)
 @wait_ack:
-    lda APUIO0
+    cmp APUIO0
     bne @wait_ack
 
     rts
@@ -125,7 +112,7 @@ SFX_PAN_CENTER  = $80   ; Center pan
 .endproc
 
 ; ============================================================================
-; AudioStopAll — silence all sounds (for title screen)
+; AudioStopAll — silence all sounds
 ; Clobbers: A
 ; ============================================================================
 .proc AudioStopAll
@@ -133,24 +120,22 @@ SFX_PAN_CENTER  = $80   ; Center pan
     lda AudioEnabled
     beq @done
 
-@wait:
-    lda APUIO0
-    bne @wait
+    ; Write stop command
+    lda #CMD_STOP
+    sta APUIO1
 
-    stz APUIO2
-    stz APUIO3
-
-    lda #GSS_STOP_ALL
-    xba
-    lda #$01
-    SET_A16
+    ; Increment counter
+    lda CmdCounter
+    inc a
+    bne :+
+    inc a
+:   sta CmdCounter
     sta APUIO0
-    SET_A8
 
-    lda APUIO3
+    ; Wait for ack
 @wait_ack:
-    cmp APUIO3
-    beq @wait_ack
+    cmp APUIO0
+    bne @wait_ack
 @done:
     rts
 .endproc
