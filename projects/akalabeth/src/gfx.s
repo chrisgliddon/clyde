@@ -7,7 +7,7 @@
 
 .include "macros.s"
 
-.export GfxUploadOverworld, GfxUploadFont, GfxUploadDungeon
+.export GfxUploadOverworld, GfxUploadFont, GfxUploadDungeon, SetBackdropColor
 
 
 ; ============================================================================
@@ -403,6 +403,21 @@
 .endproc
 
 ; ============================================================================
+; SetBackdropColor — write 15-bit color to CGRAM $00 (backdrop)
+; Input: A (16-bit) = color value. Call with A16.
+; ============================================================================
+.proc SetBackdropColor
+    SET_A8
+    pha                         ; Save low byte
+    stz CGADD                   ; CGRAM address 0
+    pla
+    sta CGDATA                  ; Low byte
+    xba
+    sta CGDATA                  ; High byte
+    rts
+.endproc
+
+; ============================================================================
 ; RODATA — Tile data and palettes
 ; ============================================================================
 
@@ -411,118 +426,137 @@
 ; ----------------------------------------------------------------------------
 ; Overworld tiles — 4bpp, 8x8 pixels, 32 bytes each
 ; 8 tiles: grass, mountain, water, town, castle, dungeon, forest, player
-; Black & white wireframe: color 0 (black) + color 15 (white) only
-; 4bpp: white pixel = all 4 bitplanes set, black = all clear
+; Filled tiles using colors 1-3 (bp0/bp1 only, bp2/bp3 = $00):
+;   Color 1 (bp0 only): main fill
+;   Color 2 (bp1 only): detail/texture
+;   Color 3 (bp0+bp1): highlight/accent
 ; ----------------------------------------------------------------------------
 
 OverworldTiles:
 
-; B&W wireframe tiles — color 15 (white) on color 0 (black)
-; All white pixels: BP0=BP1=BP2=BP3=pattern
-
-; Tile 0: Grass — empty black
-.byte $00,$00, $00,$00, $00,$00, $00,$00  ; BP 0,1
-.byte $00,$00, $00,$00, $00,$00, $00,$00
-.byte $00,$00, $00,$00, $00,$00, $00,$00  ; BP 2,3
+; Tile 0: Grass — solid color 1 fill + scattered color 2 texture dots
+;   Rows of $FF with some $22/$44 sprinkled in bp1 for texture
+.byte $FF,$00, $FF,$22, $FF,$00, $FF,$44  ; bp0,bp1 rows 0-3
+.byte $FF,$00, $FF,$88, $FF,$00, $FF,$11  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3 (all zero)
 .byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 1: Mountain — wireframe triangle
-.byte $00,$00, $18,$18, $24,$24, $42,$42  ; BP 0,1
-.byte $81,$81, $FF,$FF, $00,$00, $00,$00
-.byte $00,$00, $18,$18, $24,$24, $42,$42  ; BP 2,3
-.byte $81,$81, $FF,$FF, $00,$00, $00,$00
+; Tile 1: Mountain — color 1 body + color 2 dark base + color 3 peak
+;   Peak = bp0+bp1, body = bp0, base = bp1
+.byte $18,$18, $3C,$18, $7E,$00, $7E,$00  ; bp0,bp1 rows 0-3
+.byte $FF,$00, $FF,$00, $FF,$FF, $00,$FF  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 2: Water — wireframe wavy lines
-.byte $00,$00, $00,$00, $66,$66, $99,$99  ; BP 0,1
-.byte $00,$00, $66,$66, $99,$99, $00,$00
-.byte $00,$00, $00,$00, $66,$66, $99,$99  ; BP 2,3
-.byte $00,$00, $66,$66, $99,$99, $00,$00
+; Tile 2: Water — color 1 fill + color 3 wave crests
+;   All bp0 = $FF (fill), wave lines in bp1
+.byte $FF,$66, $FF,$00, $FF,$99, $FF,$00  ; bp0,bp1 rows 0-3
+.byte $FF,$66, $FF,$00, $FF,$99, $FF,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 3: Town — wireframe building with door
-.byte $18,$18, $3C,$3C, $7E,$7E, $42,$42  ; BP 0,1
-.byte $5A,$5A, $5A,$5A, $5A,$5A, $FF,$FF
-.byte $18,$18, $3C,$3C, $7E,$7E, $42,$42  ; BP 2,3
-.byte $5A,$5A, $5A,$5A, $5A,$5A, $FF,$FF
+; Tile 3: Town — color 1 walls + color 3 door/window
+;   Building shape in bp0, door/window in bp0+bp1
+.byte $18,$00, $3C,$00, $7E,$00, $42,$18  ; bp0,bp1 rows 0-3
+.byte $42,$18, $42,$18, $42,$18, $FF,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 4: Castle — wireframe battlements + inner box
-.byte $AA,$AA, $FF,$FF, $81,$81, $BD,$BD  ; BP 0,1
-.byte $A5,$A5, $BD,$BD, $81,$81, $FF,$FF
-.byte $AA,$AA, $FF,$FF, $81,$81, $BD,$BD  ; BP 2,3
-.byte $A5,$A5, $BD,$BD, $81,$81, $FF,$FF
+; Tile 4: Castle — color 1 walls + color 3 battlements
+;   Battlement pattern = bp0+bp1 at top
+.byte $AA,$AA, $FF,$FF, $81,$00, $BD,$00  ; bp0,bp1 rows 0-3
+.byte $A5,$00, $BD,$00, $81,$00, $FF,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 5: Dungeon — wireframe X marker
-.byte $81,$81, $42,$42, $24,$24, $18,$18  ; BP 0,1
-.byte $18,$18, $24,$24, $42,$42, $81,$81
-.byte $81,$81, $42,$42, $24,$24, $18,$18  ; BP 2,3
-.byte $18,$18, $24,$24, $42,$42, $81,$81
+; Tile 5: Dungeon — color 1 fill + color 2 X marker
+;   Solid fill in bp0, X pattern in bp1 only
+.byte $FF,$81, $FF,$42, $FF,$24, $FF,$18  ; bp0,bp1 rows 0-3
+.byte $FF,$18, $FF,$24, $FF,$42, $FF,$81  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 6: Forest — wireframe tree outline
-.byte $18,$18, $3C,$3C, $7E,$7E, $3C,$3C  ; BP 0,1
-.byte $7E,$7E, $FF,$FF, $18,$18, $18,$18
-.byte $18,$18, $3C,$3C, $7E,$7E, $3C,$3C  ; BP 2,3
-.byte $7E,$7E, $FF,$FF, $18,$18, $18,$18
+; Tile 6: Forest — color 1 canopy + color 2 trunk
+;   Canopy in bp0, trunk detail in bp1
+.byte $18,$00, $3C,$00, $7E,$00, $3C,$00  ; bp0,bp1 rows 0-3
+.byte $7E,$00, $FF,$00, $18,$18, $18,$18  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 7: Player — + crosshair
-.byte $00,$00, $18,$18, $18,$18, $FF,$FF  ; BP 0,1
-.byte $FF,$FF, $18,$18, $18,$18, $00,$00
-.byte $00,$00, $18,$18, $18,$18, $FF,$FF  ; BP 2,3
-.byte $FF,$FF, $18,$18, $18,$18, $00,$00
+; Tile 7: Player crosshair (unused — player is sprite now)
+.byte $00,$00, $18,$18, $18,$18, $FF,$FF  ; bp0,bp1 rows 0-3
+.byte $FF,$FF, $18,$18, $18,$18, $00,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
 OVERWORLD_TILES_SIZE = * - OverworldTiles ; 256 bytes (8 tiles × 32)
 
 ; ----------------------------------------------------------------------------
-; Overworld palette — B&W: color 0=black, 5=white (font), 15=white (tiles)
-; SNES 15-bit BGR format (2 bytes each)
+; Overworld palette — multi-shade Ultima-inspired colors
+; Colors 1-3: fill, detail, highlight. Color 5: BG3 font (white).
+; SNES 15-bit BGR format: %0bbbbbgg gggrrrrr
 ; ----------------------------------------------------------------------------
 
 OverworldPalette:
-    ; Palette 0: White (unused fallback)
+    ; Palette 0: Default grey
     .word $0000             ; 0: Black (transparent)
-    .word $0000, $0000, $0000
-    .word $0000             ; 4: Black (BG3 pal 1 color 0)
-    .word $7FFF             ; 5: White (BG3 font — must stay white in all pals)
-    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $7FFF             ; 15: White
-
-    ; Palette 1: Green (grass, forest)
-    .word $0000
-    .word $0000, $0000, $0000
+    .word $294A             ; 1: dark grey (fill)
+    .word $4A52             ; 2: mid grey (detail)
+    .word $7FFF             ; 3: white (highlight)
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $03E0             ; 15: Green
+    .word $7FFF             ; 15: (unused)
 
-    ; Palette 2: Blue (water)
+    ; Palette 1: Grass green
     .word $0000
-    .word $0000, $0000, $0000
+    .word $0284             ; 1: rich green R4,G20,B0
+    .word $0182             ; 2: dark green R2,G12,B0
+    .word $0B48             ; 3: bright green R8,G26,B2
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $7C00             ; 15: Blue
+    .word $03E0             ; 15: (unused)
 
-    ; Palette 3: Brown (mountain)
+    ; Palette 2: Water blue
     .word $0000
-    .word $0000, $0000, $0000
+    .word $5100             ; 1: medium blue R0,G8,B20
+    .word $3880             ; 2: dark blue R0,G4,B14
+    .word $7314             ; 3: light cyan R20,G24,B28
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $0193             ; 15: Brown
+    .word $7C00             ; 15: (unused)
 
-    ; Palette 4: Yellow (town, castle)
+    ; Palette 3: Mountain brown
     .word $0000
-    .word $0000, $0000, $0000
+    .word $090C             ; 1: brown R12,G8,B2
+    .word $04A8             ; 2: dark brown R8,G5,B1
+    .word $318C             ; 3: light grey R12,G12,B12
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $03FF             ; 15: Yellow
+    .word $0193             ; 15: (unused)
 
-    ; Palette 5: Red (dungeon, player)
+    ; Palette 4: Town/Castle tan
     .word $0000
-    .word $0000, $0000, $0000
+    .word $0193             ; 1: brown
+    .word $02DF             ; 2: tan/gold
+    .word $7FFF             ; 3: white
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $001F             ; 15: Red
+    .word $03FF             ; 15: (unused)
+
+    ; Palette 5: Dungeon/Player
+    .word $0000
+    .word $0C63             ; 1: dark grey
+    .word $001F             ; 2: red
+    .word $7FFF             ; 3: white
+    .word $0000
+    .word $7FFF             ; 5: White (BG3 font)
+    .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    .word $001F             ; 15: (unused)
 
 OVERWORLD_PAL_SIZE = * - OverworldPalette ; 192 bytes (6 palettes × 32)
 
@@ -739,154 +773,164 @@ FONT_TILES_SIZE = * - FontTiles ; 1536 bytes (96 glyphs × 16)
 
 DungeonTiles:
 
-; B&W wireframe dungeon tiles — color 15 (white) on color 0 (black)
+; Filled dungeon tiles — colors 1-3 via bp0/bp1, bp2/bp3 = $00
+; Color 1 (bp0): fill, Color 2 (bp1): detail, Color 3 (bp0+bp1): highlight
 
-; Tile 0: Floor — empty black
+; Tile 0: Floor — subtle texture on color 1 fill
+.byte $FF,$00, $FF,$88, $FF,$00, $FF,$22  ; bp0,bp1 rows 0-3
+.byte $FF,$00, $FF,$44, $FF,$00, $FF,$11  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
 .byte $00,$00, $00,$00, $00,$00, $00,$00
+
+; Tile 1: Wall — stone block pattern (color 1 fill + color 2 mortar lines)
+.byte $FF,$FF, $FF,$00, $FF,$00, $FF,$00  ; bp0,bp1 rows 0-3
+.byte $FF,$FF, $FF,$00, $FF,$00, $FF,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
 .byte $00,$00, $00,$00, $00,$00, $00,$00
+
+; Tile 2: Wall filled — solid color 1 (stone)
+.byte $FF,$00, $FF,$00, $FF,$00, $FF,$00  ; bp0,bp1
+.byte $FF,$00, $FF,$00, $FF,$00, $FF,$00
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
 .byte $00,$00, $00,$00, $00,$00, $00,$00
+
+; Tile 3: Door — color 1 arch + color 3 door frame
+.byte $7E,$7E, $C3,$C3, $81,$81, $81,$00  ; bp0,bp1 rows 0-3
+.byte $81,$00, $81,$00, $81,$81, $81,$81  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
 .byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 1: Wall — white outline rectangle
-.byte $FF,$FF, $81,$81, $81,$81, $81,$81  ; BP 0,1
-.byte $81,$81, $81,$81, $81,$81, $FF,$FF
-.byte $FF,$FF, $81,$81, $81,$81, $81,$81  ; BP 2,3
-.byte $81,$81, $81,$81, $81,$81, $FF,$FF
+; Tile 4: Floor pattern — color 1 fill + color 2 grid dots
+.byte $FF,$88, $FF,$00, $FF,$22, $FF,$00  ; bp0,bp1 rows 0-3
+.byte $FF,$88, $FF,$00, $FF,$22, $FF,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 2: Wall filled — solid white block
-.byte $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF  ; BP 0,1
-.byte $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF
-.byte $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF  ; BP 2,3
-.byte $FF,$FF, $FF,$FF, $FF,$FF, $FF,$FF
+; Tile 5: Stairs — color 1 rails + color 3 rungs
+.byte $42,$42, $7E,$7E, $42,$42, $7E,$7E  ; bp0,bp1 rows 0-3
+.byte $42,$42, $7E,$7E, $42,$42, $7E,$7E  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 3: Door — wireframe arch
-.byte $7E,$7E, $C3,$C3, $81,$81, $81,$81  ; BP 0,1
-.byte $81,$81, $81,$81, $81,$81, $81,$81
-.byte $7E,$7E, $C3,$C3, $81,$81, $81,$81  ; BP 2,3
-.byte $81,$81, $81,$81, $81,$81, $81,$81
+; Tile 6: Chest — color 1 box + color 3 latch highlight
+.byte $00,$00, $7E,$00, $42,$00, $7E,$7E  ; bp0,bp1 rows 0-3
+.byte $4A,$08, $42,$00, $7E,$00, $00,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 4: Floor pattern — sparse grid dots
-.byte $88,$88, $00,$00, $22,$22, $00,$00  ; BP 0,1
-.byte $88,$88, $00,$00, $22,$22, $00,$00
-.byte $88,$88, $00,$00, $22,$22, $00,$00  ; BP 2,3
-.byte $88,$88, $00,$00, $22,$22, $00,$00
+; Tile 7: Wall edge — color 1 vertical line (left side)
+.byte $C0,$00, $C0,$00, $C0,$00, $C0,$00  ; bp0,bp1
+.byte $C0,$00, $C0,$00, $C0,$00, $C0,$00
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 5: Stairs — wireframe ladder rungs
-.byte $42,$42, $7E,$7E, $42,$42, $7E,$7E  ; BP 0,1
-.byte $42,$42, $7E,$7E, $42,$42, $7E,$7E
-.byte $42,$42, $7E,$7E, $42,$42, $7E,$7E  ; BP 2,3
-.byte $42,$42, $7E,$7E, $42,$42, $7E,$7E
+; Tile $08: Skeleton — color 1 body + color 3 skull highlight
+.byte $3C,$3C, $42,$00, $3C,$00, $18,$00  ; bp0,bp1 rows 0-3
+.byte $7E,$00, $5A,$00, $3C,$00, $24,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 6: Chest — wireframe box with latch
-.byte $00,$00, $7E,$7E, $42,$42, $7E,$7E  ; BP 0,1
-.byte $4A,$4A, $42,$42, $7E,$7E, $00,$00
-.byte $00,$00, $7E,$7E, $42,$42, $7E,$7E  ; BP 2,3
-.byte $4A,$4A, $42,$42, $7E,$7E, $00,$00
+; Tile $09: Thief — color 1 body + color 2 hood
+.byte $18,$18, $3C,$3C, $18,$00, $3C,$00  ; bp0,bp1 rows 0-3
+.byte $5A,$00, $18,$00, $24,$00, $24,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile 7: Wall edge — vertical line (left side)
-.byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0  ; BP 0,1
-.byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0
-.byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0  ; BP 2,3
-.byte $C0,$C0, $C0,$C0, $C0,$C0, $C0,$C0
+; Tile $0A: Giant Rat — color 1 body
+.byte $00,$00, $00,$00, $38,$00, $7C,$00  ; bp0,bp1 rows 0-3
+.byte $FE,$00, $44,$00, $44,$00, $02,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $08: Skeleton — skull + ribcage
-.byte $3C,$3C, $42,$42, $3C,$3C, $18,$18  ; BP 0,1
-.byte $7E,$7E, $5A,$5A, $3C,$3C, $24,$24
-.byte $3C,$3C, $42,$42, $3C,$3C, $18,$18  ; BP 2,3
-.byte $7E,$7E, $5A,$5A, $3C,$3C, $24,$24
+; Tile $0B: Orc — color 1 body + color 3 head
+.byte $3C,$3C, $7E,$7E, $3C,$00, $7E,$00  ; bp0,bp1 rows 0-3
+.byte $FF,$00, $7E,$00, $24,$00, $66,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $09: Thief — hooded figure with dagger
-.byte $18,$18, $3C,$3C, $18,$18, $3C,$3C  ; BP 0,1
-.byte $5A,$5A, $18,$18, $24,$24, $24,$24
-.byte $18,$18, $3C,$3C, $18,$18, $3C,$3C  ; BP 2,3
-.byte $5A,$5A, $18,$18, $24,$24, $24,$24
+; Tile $0C: Viper — color 1 body
+.byte $06,$00, $0E,$00, $1C,$00, $38,$00  ; bp0,bp1 rows 0-3
+.byte $70,$00, $E0,$00, $70,$00, $38,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $0A: Giant Rat — low quadruped with tail
-.byte $00,$00, $00,$00, $38,$38, $7C,$7C  ; BP 0,1
-.byte $FE,$FE, $44,$44, $44,$44, $02,$02
-.byte $00,$00, $00,$00, $38,$38, $7C,$7C  ; BP 2,3
-.byte $FE,$FE, $44,$44, $44,$44, $02,$02
+; Tile $0D: Carrion Crawler — color 1 body + color 2 segments
+.byte $00,$00, $7E,$00, $FF,$00, $DB,$24  ; bp0,bp1 rows 0-3
+.byte $FF,$00, $DB,$24, $7E,$00, $00,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $0B: Orc — broad squat humanoid
-.byte $3C,$3C, $7E,$7E, $3C,$3C, $7E,$7E  ; BP 0,1
-.byte $FF,$FF, $7E,$7E, $24,$24, $66,$66
-.byte $3C,$3C, $7E,$7E, $3C,$3C, $7E,$7E  ; BP 2,3
-.byte $FF,$FF, $7E,$7E, $24,$24, $66,$66
+; Tile $0E: Gremlin — color 1 body + color 3 ears
+.byte $42,$42, $3C,$3C, $7E,$00, $18,$00  ; bp0,bp1 rows 0-3
+.byte $3C,$00, $18,$00, $24,$00, $00,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $0C: Viper — sinuous S-curve snake
-.byte $06,$06, $0E,$0E, $1C,$1C, $38,$38  ; BP 0,1
-.byte $70,$70, $E0,$E0, $70,$70, $38,$38
-.byte $06,$06, $0E,$0E, $1C,$1C, $38,$38  ; BP 2,3
-.byte $70,$70, $E0,$E0, $70,$70, $38,$38
+; Tile $0F: Mimic — color 1 box + color 3 teeth highlight
+.byte $00,$00, $7E,$00, $5A,$5A, $7E,$7E  ; bp0,bp1 rows 0-3
+.byte $4A,$08, $42,$00, $7E,$00, $00,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $0D: Carrion Crawler — segmented worm
-.byte $00,$00, $7E,$7E, $FF,$FF, $DB,$DB  ; BP 0,1
-.byte $FF,$FF, $DB,$DB, $7E,$7E, $00,$00
-.byte $00,$00, $7E,$7E, $FF,$FF, $DB,$DB  ; BP 2,3
-.byte $FF,$FF, $DB,$DB, $7E,$7E, $00,$00
+; Tile $10: Daemon — color 1 body + color 3 wings
+.byte $18,$00, $3C,$00, $18,$00, $FF,$E7  ; bp0,bp1 rows 0-3
+.byte $DB,$C3, $18,$00, $24,$00, $42,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
-; Tile $0E: Gremlin — small imp with pointed ears
-.byte $42,$42, $3C,$3C, $7E,$7E, $18,$18  ; BP 0,1
-.byte $3C,$3C, $18,$18, $24,$24, $00,$00
-.byte $42,$42, $3C,$3C, $7E,$7E, $18,$18  ; BP 2,3
-.byte $3C,$3C, $18,$18, $24,$24, $00,$00
-
-; Tile $0F: Mimic — chest with teeth
-.byte $00,$00, $7E,$7E, $5A,$5A, $7E,$7E  ; BP 0,1
-.byte $4A,$4A, $42,$42, $7E,$7E, $00,$00
-.byte $00,$00, $7E,$7E, $5A,$5A, $7E,$7E  ; BP 2,3
-.byte $4A,$4A, $42,$42, $7E,$7E, $00,$00
-
-; Tile $10: Daemon — winged humanoid
-.byte $18,$18, $3C,$3C, $18,$18, $FF,$FF  ; BP 0,1
-.byte $DB,$DB, $18,$18, $24,$24, $42,$42
-.byte $18,$18, $3C,$3C, $18,$18, $FF,$FF  ; BP 2,3
-.byte $DB,$DB, $18,$18, $24,$24, $42,$42
-
-; Tile $11: Balrog — large horned figure
-.byte $66,$66, $3C,$3C, $18,$18, $FF,$FF  ; BP 0,1
-.byte $7E,$7E, $3C,$3C, $66,$66, $C3,$C3
-.byte $66,$66, $3C,$3C, $18,$18, $FF,$FF  ; BP 2,3
-.byte $7E,$7E, $3C,$3C, $66,$66, $C3,$C3
+; Tile $11: Balrog — color 1 body + color 3 horns
+.byte $66,$66, $3C,$3C, $18,$00, $FF,$00  ; bp0,bp1 rows 0-3
+.byte $7E,$00, $3C,$00, $66,$00, $C3,$00  ; bp0,bp1 rows 4-7
+.byte $00,$00, $00,$00, $00,$00, $00,$00  ; bp2,bp3
+.byte $00,$00, $00,$00, $00,$00, $00,$00
 
 DUNGEON_TILES_SIZE = * - DungeonTiles
 
 ; ----------------------------------------------------------------------------
-; Dungeon palette — B&W: same as overworld
+; Dungeon palette — brown/earthy stone tones
+; Colors 1-3: fill, detail, highlight. Color 5: BG3 font (white).
 ; ----------------------------------------------------------------------------
 
 DungeonPalette:
-    ; Palette 0: White (walls, floor, empty)
+    ; Palette 0: Stone walls/floor
     .word $0000             ; 0: Black (transparent)
-    .word $0000, $0000, $0000
+    .word $090A             ; 1: brown stone
+    .word $04C8             ; 2: dark stone
+    .word $0D4E             ; 3: light stone
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $7FFF             ; 15: White
+    .word $7FFF             ; 15: (unused)
 
-    ; Palette 1: Brown (doors)
+    ; Palette 1: Doors (warm brown)
     .word $0000
-    .word $0000, $0000, $0000
+    .word $0193             ; 1: warm brown
+    .word $00C2             ; 2: dark brown
+    .word $02DF             ; 3: tan
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $0193             ; 15: Brown
+    .word $0193             ; 15: (unused)
 
-    ; Palette 2: Yellow (stairs, chests)
+    ; Palette 2: Stairs/chests (gold/tan)
     .word $0000
-    .word $0000, $0000, $0000
+    .word $02DF             ; 1: gold/tan
+    .word $0193             ; 2: brown
+    .word $7FFF             ; 3: white highlight
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $03FF             ; 15: Yellow
+    .word $03FF             ; 15: (unused)
 
-    ; Palette 3: Red (monsters)
+    ; Palette 3: Monsters (red)
     .word $0000
-    .word $0000, $0000, $0000
+    .word $001F             ; 1: red
+    .word $0C63             ; 2: dark grey
+    .word $7FFF             ; 3: white
     .word $0000
     .word $7FFF             ; 5: White (BG3 font)
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $001F             ; 15: Red
+    .word $001F             ; 15: (unused)
 
 DUNGEON_PAL_SIZE = * - DungeonPalette ; 128 bytes (4 palettes × 32)
 
@@ -922,7 +966,7 @@ PlayerSprTiles:
 PLAYER_SPR_SIZE = * - PlayerSprTiles ; 128 bytes
 
 ; ----------------------------------------------------------------------------
-; OBJ palette 0 — red crosshair (matches BG1 palette 5)
+; OBJ palette 0 — white crosshair (visible on green overworld)
 ; CGRAM $80-$8F (16 colors × 2 bytes = 32 bytes)
 ; ----------------------------------------------------------------------------
 
@@ -930,7 +974,7 @@ ObjPalette0:
     .word $0000             ; 0: transparent
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
     .word $0000, $0000, $0000, $0000, $0000, $0000, $0000
-    .word $001F             ; 15: Red
+    .word $7FFF             ; 15: White
 
 OBJ_PAL0_SIZE = * - ObjPalette0 ; 32 bytes
 

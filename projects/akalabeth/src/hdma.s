@@ -26,26 +26,16 @@ HdmaGradient:   .res 1      ; 0=off, 1=overworld sky, 2=dungeon depth
 ; ============================================================================
 .proc HdmaSetOverworld
     SET_A8
-    ; Configure HDMA channel 1 → COLDATA ($2132)
-    lda #$00                    ; Transfer mode 0: 1 reg, 1 write
-    sta DMAP1
-    lda #$32                    ; B-bus register: COLDATA
-    sta BBAD1
-    lda #<SkyGradientTable
-    sta A1T1L
-    lda #>SkyGradientTable
-    sta A1T1H
-    stz A1B1                    ; Bank 0 (ROM)
-    ; Enable color math: add to BG1 + backdrop
-    stz SHADOW_CGWSEL
-    lda #$21
-    sta SHADOW_CGADSUB
-    ; Enable HDMA channel 1
+    ; Tiles now provide their own color — no COLDATA color math needed
+    ; Disable color math entirely
+    lda #$30                    ; Color math = never
+    sta SHADOW_CGWSEL
+    stz SHADOW_CGADSUB
+    ; Disable HDMA channel 1 (no gradient)
     lda SHADOW_HDMAEN
-    ora #$02
+    and #$FD                    ; Clear bit 1
     sta SHADOW_HDMAEN
-    lda #$01
-    sta HdmaGradient
+    stz HdmaGradient
     ; Window masking: hide BG1 in HUD area (lines 0-15)
     lda #$03                    ; Window 1 enabled + inverted for BG1
     sta W12SEL
@@ -141,12 +131,13 @@ SkyGradientTable:
     .byte $81, $20              ; 1 line: blue intensity 0
     .byte $00                   ; End
 
-; Warm dungeon gradient: 16-line HUD header, then red decreasing with depth
+; Warm brown dungeon gradient: red+green combined for earthy tone
 ; Total: 16 + 32*2 + 64 + 80 = 224 scanlines
+; Uses red channel only (green set via torch flicker for warmth)
 DungeonGradientTable:
     .byte $90, $80              ; 16 lines: red intensity 0 (HUD area)
-    .byte $A0, $85              ; 32 lines: red intensity 5
-    .byte $A0, $84              ; 32 lines: red intensity 4
-    .byte $C0, $83              ; 64 lines: red intensity 3
-    .byte $D0, $82              ; 80 lines: red intensity 2
+    .byte $A0, $83              ; 32 lines: red intensity 3
+    .byte $A0, $82              ; 32 lines: red intensity 2
+    .byte $C0, $81              ; 64 lines: red intensity 1
+    .byte $D0, $80              ; 80 lines: red intensity 0
     .byte $00                   ; End

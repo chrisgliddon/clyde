@@ -17,7 +17,7 @@
 .import UiShowChargenSeed, UiShowChargenStats, UiShowChargenClass
 .import UiShowGameOver, UiShowVictory
 .import UiClearBg3, UiTickMessage
-.import GfxUploadOverworld, GfxUploadFont
+.import GfxUploadOverworld, GfxUploadFont, SetBackdropColor
 .import SaveGame, LoadGame, EraseSave
 .import AudioInit, PlaySfx, SetAmbience
 .import SpriteInit
@@ -225,6 +225,10 @@ STATE_CHARGEN_CLASS = $09
 
     ; Show title screen
     jsr UiShowTitle
+    SET_A16
+    lda #$2020                  ; Dark navy backdrop
+    jsr SetBackdropColor
+    SET_A8
     lda #$01
     sta StatsDirty
 
@@ -398,6 +402,10 @@ STATE_CHARGEN_CLASS = $09
     jsr OverworldInit
     jsr UiClearBg3
     jsr FadeOut
+    SET_A16
+    lda #$0000                  ; Black backdrop for gameplay
+    jsr SetBackdropColor
+    SET_A8
     jsr GfxUploadOverworld
     jsr HdmaSetOverworld
     lda #$01
@@ -437,6 +445,10 @@ STATE_CHARGEN_CLASS = $09
 @exit_dungeon_gfx:
     jsr UiClearBg3
     jsr FadeOut
+    SET_A16
+    lda #$0000                  ; Black backdrop for gameplay
+    jsr SetBackdropColor
+    SET_A8
     jsr GfxUploadOverworld
     jsr HdmaSetOverworld
     lda #$01
@@ -678,6 +690,10 @@ STATE_CHARGEN_CLASS = $09
     lda #SFX_GAMEOVER
     jsr PlaySfx
     jsr HdmaDisable
+    SET_A16
+    lda #$2020                  ; Dark navy backdrop for title
+    jsr SetBackdropColor
+    SET_A8
     lda #STATE_TITLE
     sta GameState
     jsr EraseSave

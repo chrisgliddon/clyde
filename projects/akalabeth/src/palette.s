@@ -151,13 +151,8 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
     SET_A8
     lda PalFxType
     bne @skip                       ; active effect overrides ambient
-    lda HdmaGradient
-    bne @skip                       ; HDMA gradient supersedes
 
-    ; Enable color math with subtle blue oscillation
-    stz SHADOW_CGWSEL               ; color math always, fixed color
-    lda #$21                        ; add to BG1 + backdrop
-    sta SHADOW_CGADSUB
+    ; Cycle water palette CGRAM colors (palette 2, colors 1-3)
     ; Triangle wave from NmiCount: phase 0-31
     lda NmiCount
     and #$1F
@@ -165,17 +160,17 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
     bcc @rising
     eor #$1F                        ; mirror: 31→0, 30→1, ...
 @rising:
-    ; A = 0-15, scale to 2-5 range
+    ; A = 0-15, use low 2 bits to pick alternate blue shades
     lsr
     lsr                             ; 0-3
-    clc
-    adc #$02                        ; 2-5
-    ora #$20                        ; blue channel flag
-    sta SHADOW_COLDATA
-    lda #$40
-    sta SHADOW_COLDATA+1            ; green = 0
-    lda #$80
-    sta SHADOW_COLDATA+2            ; red = 0
+    tax
+    ; Write palette 2 color 1 (CGRAM word $21 = byte $42)
+    lda #$42                        ; CGRAM byte address for pal2 color1
+    sta CGADD
+    lda WaterShimmerLo,x
+    sta CGDATA
+    lda WaterShimmerHi,x
+    sta CGDATA
 @skip:
     rts
 .endproc
@@ -188,30 +183,41 @@ PalFxTimer:     .res 1      ; Countdown frames for active effect
 .proc PalFxTorchFlicker
     SET_A8
     lda PalFxType
-    bne @skip
+    bne @skip_torch
     lda HdmaGradient
-    bne @skip                       ; HDMA gradient supersedes
+    bne @skip_torch                 ; HDMA gradient supersedes
 
     stz SHADOW_CGWSEL               ; color math always, fixed color
     lda #$21                        ; add to BG1 + backdrop
     sta SHADOW_CGADSUB
-    ; Red: oscillate 3-10 using low 3 bits of NmiCount
+    ; Red: oscillate 1-5 using low 2 bits of NmiCount (softer)
     lda NmiCount
-    and #$07
-    clc
-    adc #$03                        ; 3-10
-    ora #$80                        ; red channel flag
-    sta SHADOW_COLDATA+2
-    ; Green: subtle warmth 1-4
-    lda NmiCount
-    lsr
-    and #$03                        ; 0-3
+    and #$03
     clc
     adc #$01                        ; 1-4
+    ora #$80                        ; red channel flag
+    sta SHADOW_COLDATA+2
+    ; Green: subtle warmth 0-2
+    lda NmiCount
+    lsr
+    and #$01                        ; 0-1
+    clc
+    adc #$00                        ; 0-1
     ora #$40                        ; green channel flag
     sta SHADOW_COLDATA+1
     lda #$20                        ; blue = 0
     sta SHADOW_COLDATA
-@skip:
+@skip_torch:
     rts
 .endproc
+
+; ============================================================================
+; RODATA — Water shimmer lookup (4 blue shade variations)
+; ============================================================================
+
+.segment "RODATA"
+
+; Low/high bytes of 4 water blue shades for CGRAM cycling
+; Shades cycle between slightly different blues
+WaterShimmerLo: .byte <$5100, <$4900, <$5900, <$4900
+WaterShimmerHi: .byte >$5100, >$4900, >$5900, >$4900

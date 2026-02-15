@@ -22,7 +22,7 @@
 .importzp PlayerRapier, PlayerAxe, PlayerShield, PlayerBow, PlayerAmulet
 .importzp PlayerSTR, PlayerDEX, PlayerSTA, PlayerWIS
 .importzp PlayerClass, DiffLevel, ChargenSeed, ShopCursor
-.import GfxUploadFont
+.import GfxUploadFont, SetBackdropColor
 
 ; ============================================================================
 ; Constants
@@ -336,6 +336,12 @@ MsgBuf:         .res 32     ; Composed message text buffer
 .proc UiShowTitle
     SET_AXY8
     jsr UiClearBg3
+
+    ; Dark navy backdrop for title screen
+    SET_A16
+    lda #$2020                  ; Dark navy (R0,G1,B8)
+    jsr SetBackdropColor
+    SET_A8
 
     ; Configure PPU for text-only display (via shadow registers)
     lda #$01                ; Mode 1
@@ -696,6 +702,11 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; ============================================================================
 .proc UiShowGameOver
     SET_AXY8
+    ; Dark red backdrop for game over
+    SET_A16
+    lda #$0008              ; Dark red (R8,G0,B0)
+    jsr SetBackdropColor
+    SET_AXY8
     lda #$14                ; Red (BG3 palette 5)
     sta FontAttr
     jsr UiClearBg3
@@ -733,6 +744,11 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; UiShowVictory — knighthood screen
 ; ============================================================================
 .proc UiShowVictory
+    SET_AXY8
+    ; Dark blue backdrop for victory
+    SET_A16
+    lda #$2020              ; Dark navy
+    jsr SetBackdropColor
     SET_AXY8
     lda #$18                ; Gold (BG3 palette 6)
     sta FontAttr
@@ -779,6 +795,11 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; UiShowChargenSeed — lucky number + difficulty entry screen
 ; ============================================================================
 .proc UiShowChargenSeed
+    SET_AXY8
+    ; Dark navy backdrop for chargen
+    SET_A16
+    lda #$2020
+    jsr SetBackdropColor
     SET_AXY8
     lda #$10                ; Cyan (BG3 palette 4)
     sta FontAttr
@@ -842,6 +863,11 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; UiShowChargenStats — stat display with accept/reroll
 ; ============================================================================
 .proc UiShowChargenStats
+    SET_AXY8
+    ; Dark navy backdrop for chargen
+    SET_A16
+    lda #$2020
+    jsr SetBackdropColor
     SET_AXY8
     lda #$10                ; Cyan (BG3 palette 4)
     sta FontAttr
@@ -965,6 +991,11 @@ MsgBuf:         .res 32     ; Composed message text buffer
 ; UiShowChargenClass — Fighter or Mage choice
 ; ============================================================================
 .proc UiShowChargenClass
+    SET_AXY8
+    ; Dark navy backdrop for chargen
+    SET_A16
+    lda #$2020
+    jsr SetBackdropColor
     SET_AXY8
     lda #$10                ; Cyan (BG3 palette 4)
     sta FontAttr
